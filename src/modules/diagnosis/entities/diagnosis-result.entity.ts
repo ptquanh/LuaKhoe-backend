@@ -6,7 +6,7 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 
-import { Disease } from '@modules/disease/entities/disease.entity';
+import { Disease } from '@modules/disease/disease.entity';
 
 import { Diagnosis } from './diagnosis.entity';
 

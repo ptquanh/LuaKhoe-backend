@@ -170,3 +170,9 @@ export enum DISEASE_STATUS {
   VISIBLE = 'visible',
   HIDDEN = 'hidden',
 }
+
+export enum FEEDBACK_STATUS {
+  PENDING = 'pending',
+  ACCEPTED = 'accepted',
+  REJECTED = 'rejected',
+}

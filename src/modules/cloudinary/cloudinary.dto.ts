@@ -11,7 +11,7 @@ export class GetSignatureDto {
   })
   @IsEnum(CLOUDINARY_FOLDER)
   @IsNotEmpty()
-  folder: CLOUDINARY_FOLDER;
+  folder: string;
 }
 
 export class GetSignatureResponseDto {
@@ -21,7 +21,7 @@ export class GetSignatureResponseDto {
   })
   @IsEnum(CLOUDINARY_FOLDER)
   @IsNotEmpty()
-  folder: CLOUDINARY_FOLDER;
+  folder: string;
 
   @ApiProperty({
     description: 'Signature to upload files to',

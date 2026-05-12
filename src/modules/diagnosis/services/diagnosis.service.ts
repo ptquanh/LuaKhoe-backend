@@ -11,8 +11,8 @@ import aiServiceConfig from '@configs/ai-service.config';
 
 import { AiModelService } from '@modules/ai-model/ai-model.service';
 import { CloudinaryService } from '@modules/cloudinary/cloudinary.service';
-import { DiseaseService } from '@modules/disease/services/disease.service';
-import { NutritionService } from '@modules/nutrition/services/nutrition.service';
+import { DiseaseService } from '@modules/disease/disease.service';
+import { NutritionService } from '@modules/nutrition/nutrition.service';
 
 import {
   generateNotFoundResult,

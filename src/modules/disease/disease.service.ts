@@ -11,7 +11,7 @@ import {
 } from '@shared/helpers/operation-result.helper';
 import { BaseCRUDService } from '@shared/services/base-crud.service';
 
-import { Disease } from '../entities/disease.entity';
+import { Disease } from './disease.entity';
 
 @Injectable()
 export class DiseaseService extends BaseCRUDService<Disease> {

@@ -41,7 +41,7 @@ export class CloudinaryService {
 
   async uploadBase64Image(
     base64Data: string,
-    folder = CLOUDINARY_FOLDER.RESULTS,
+    folder = CLOUDINARY_FOLDER.DIAGNOSES_RESULTS,
   ): Promise<any> {
     const dataUri = `data:image/png;base64,${base64Data}`;
     return this.cloudinaryService.uploader.upload(dataUri, {
