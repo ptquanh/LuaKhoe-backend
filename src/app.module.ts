@@ -6,8 +6,16 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
+import { AiModelModule } from '@modules/ai-model/ai-model.module';
+import { AuthModule } from '@modules/auth/auth.module';
+import { CloudinaryModule } from '@modules/cloudinary/cloudinary.module';
+import { DiagnosisModule } from '@modules/diagnosis/diagnosis.module';
+import { DiseaseModule } from '@modules/disease/disease.module';
+import { FeedbackModule } from '@modules/feedback/feedback.module';
 import { GlobalModule } from '@modules/global/global.module';
 import { HealthModule } from '@modules/health/health.module';
+import { NutritionModule } from '@modules/nutrition/nutrition.module';
+import { UserModule } from '@modules/user/user.module';
 
 import configs from './configs';
 
@@ -37,6 +45,14 @@ import configs from './configs';
     ScheduleModule.forRoot(),
     GlobalModule,
     HealthModule,
+    AuthModule,
+    UserModule,
+    AiModelModule,
+    CloudinaryModule,
+    DiagnosisModule,
+    DiseaseModule,
+    FeedbackModule,
+    NutritionModule,
   ],
 })
 export class AppModule {}

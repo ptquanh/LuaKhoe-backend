@@ -2,6 +2,7 @@ import { PaginationResult } from 'mvc-common-toolkit';
 import {
   Any,
   DeleteResult,
+  FindOptionsOrder,
   FindOptionsRelations,
   FindOptionsSelect,
   FindOptionsWhere,
@@ -22,6 +23,7 @@ type FindOptions<T> = {
   relations?: FindOptionsRelations<T>;
   sort?: string;
   withDeleted?: boolean;
+  order?: FindOptionsOrder<T>;
 };
 
 @Injectable()

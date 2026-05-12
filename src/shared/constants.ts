@@ -4,6 +4,7 @@ export const INJECTION_TOKEN = {
   REDIS_SERVICE: Symbol.for('REDIS_SERVICE'),
   SYNC_TASK_QUEUE: Symbol.for('SYNC_TASK_QUEUE'),
   MAIL_TRANSPORTER: Symbol.for('MAIL_TRANSPORTER'),
+  CLOUDINARY_SERVICE: Symbol.for('CLOUDINARY_SERVICE'),
 };
 
 export const ERR_CODE = {
@@ -49,6 +50,9 @@ export enum CONFIG_KEY {
   JWT = 'jwt',
   REDIS = 'redis',
   EMAIL = 'email',
+  CLOUDINARY = 'cloudinary',
+  AI_SERVICE = 'aiService',
+  GEMINI = 'gemini',
 }
 
 export const ENV_KEY = {
@@ -88,6 +92,10 @@ export const ENV_KEY = {
   GOOGLE_CLIENT_ID: CONFIG_KEY.APP + '.googleClientId',
   GOOGLE_CLIENT_SECRET: CONFIG_KEY.APP + '.googleClientSecret',
   GOOGLE_CALLBACK_URL: CONFIG_KEY.APP + '.googleCallbackUrl',
+
+  CLOUDINARY_CLOUD_NAME: CONFIG_KEY.CLOUDINARY + '.cloudName',
+  CLOUDINARY_API_KEY: CONFIG_KEY.CLOUDINARY + '.apiKey',
+  CLOUDINARY_API_SECRET: CONFIG_KEY.CLOUDINARY + '.apiSecret',
 };
 
 export enum METADATA_KEY {
@@ -152,3 +160,8 @@ export const CACHE_TTL = {
   ONE_HOUR: 60 * 60,
   ONE_DAY: 24 * 60 * 60,
 } as const;
+
+export enum CLOUDINARY_FOLDER {
+  DIAGNOSES = 'luakhoe/diagnoses',
+  RESULTS = 'luakhoe/results',
+}
