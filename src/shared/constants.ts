@@ -161,7 +161,12 @@ export const CACHE_TTL = {
   ONE_DAY: 24 * 60 * 60,
 } as const;
 
-export enum CLOUDINARY_FOLDER {
-  DIAGNOSES = 'luakhoe/diagnoses',
-  RESULTS = 'luakhoe/results',
+export const CLOUDINARY_FOLDER = {
+  DIAGNOSES: `${ENV_KEY.APP_NAME}/diagnoses`,
+  DIAGNOSES_RESULTS: `${ENV_KEY.APP_NAME}/diagnoses-results`,
+};
+
+export enum DISEASE_STATUS {
+  VISIBLE = 'visible',
+  HIDDEN = 'hidden',
 }

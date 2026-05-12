@@ -37,7 +37,7 @@ export class AiModelService extends BaseCRUDService<AiModel> {
   }
 
   async findById(id: string): Promise<HttpResponse<AiModel>> {
-    const model = await this.findById(id);
+    const model = await this.findByID(id);
 
     if (!model) {
       return generateNotFoundResult(`AI Model ${id} not found`);
