@@ -14,6 +14,9 @@ import { Global, Logger, Module, Provider } from '@nestjs/common';
 import { ConfigType } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 
+import jwtConfig from '@configs/jwt.config';
+import redisConfig from '@configs/redis.config';
+
 import { INJECTION_TOKEN } from '@shared/constants';
 
 const httpServiceProvider: Provider = {
@@ -25,22 +28,22 @@ const httpServiceProvider: Provider = {
 
 const redisServiceProvider: Provider = {
   provide: INJECTION_TOKEN.REDIS_SERVICE,
-  useFactory: (app: ConfigType<typeof appConfig>) => {
+  useFactory: (redis: ConfigType<typeof redisConfig>) => {
     return new RedisService({
-      host: app.redisHost,
-      port: app.redisPort,
-      password: app.redisPassword,
-      keyPrefix: app.serviceName,
+      host: redis.host,
+      port: redis.port,
+      password: redis.password,
+      keyPrefix: redis.prefix,
     });
   },
-  inject: [appConfig.KEY],
+  inject: [redisConfig.KEY],
 };
 
 const jwtModuleProvider = JwtModule.registerAsync({
-  inject: [appConfig.KEY],
-  useFactory: (app: ConfigType<typeof appConfig>) => {
+  inject: [jwtConfig.KEY],
+  useFactory: (jwt: ConfigType<typeof jwtConfig>) => {
     const logger = new Logger('JwtModule');
-    let secret = app.jwtSecret;
+    let secret = jwt.secret;
     if (!secret) {
       logger.warn(
         'JWT_SECRET config is not set. A random secret will be used, and all JWTs will be invalid after a restart.',
@@ -51,7 +54,7 @@ const jwtModuleProvider = JwtModule.registerAsync({
     return {
       secret,
       signOptions: {
-        expiresIn: app.jwtExpiration,
+        expiresIn: jwt.expiration,
       },
     };
   },

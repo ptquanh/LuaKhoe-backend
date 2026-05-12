@@ -31,6 +31,7 @@
     "@nestjs/swagger": "^11.0.3",
     "@nestjs/typeorm": "^11.0.0",
     "axios": "^1.7.2",
+    "nodemailer": "^7.0.12",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
     "dayjs": "^1.11.13",
@@ -43,16 +44,7 @@
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
     "sanitize-html": "^2.14.0",
-    "typeorm": "^0.3.22",
-    "@opentelemetry/auto-instrumentations-node": "^0.69.0",
-    "@opentelemetry/context-async-hooks": "^2.5.1",
-    "@opentelemetry/core": "^2.5.1",
-    "@opentelemetry/exporter-prometheus": "^0.212.0",
-    "@opentelemetry/exporter-trace-otlp-http": "^0.212.0",
-    "@opentelemetry/propagator-b3": "^2.5.1",
-    "@opentelemetry/propagator-jaeger": "^2.5.1",
-    "@opentelemetry/sdk-node": "^0.212.0",
-    "@opentelemetry/sdk-trace-base": "^2.5.1"
+    "typeorm": "^0.3.22"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",

@@ -7,6 +7,7 @@ import {
   PARTNER_DIRECTION,
   PARTNER_TYPE,
 } from './constants';
+import { ROLE } from './enums';
 
 export interface RunnerUser {
   alias: string;
@@ -15,15 +16,10 @@ export interface RunnerUser {
 
 export interface UserAuthProfile {
   id: string;
+  email: string;
   username: string;
-  companyId: string;
-  role: string;
+  role: ROLE;
   status: ENTITY_STATUS;
-  email?: string;
-  phone?: string;
-  bankAccountName?: string;
-  isPassCodeSet?: boolean;
-  isTwoFactorEnabled?: boolean;
 }
 
 export interface SystemUserAuthProfile {
@@ -63,4 +59,13 @@ export interface FindOptions {
   select?: FindOptionsSelect<any>;
   relations?: FindOptionsRelations<any>;
   withDeleted?: boolean;
+}
+
+export interface UserAuthSocialProfile {
+  provider: string;
+  providerUserId: string;
+  email: string;
+  accessToken?: string;
+  refreshToken?: string;
+  referrerCode?: string;
 }
