@@ -63,7 +63,20 @@ export class UserProfileService extends BaseCRUDService<UserProfile> {
       });
     }
 
-    Object.assign(profile, dto);
+    const { gps, ...rest } = dto;
+    Object.assign(profile, rest);
+
+    if (gps) {
+      try {
+        const gpsObj = typeof gps === 'string' ? JSON.parse(gps) : gps;
+        if (gpsObj) {
+          profile.gpsLatitude = gpsObj.latitude;
+          profile.gpsLongitude = gpsObj.longitude;
+        }
+      } catch (err) {
+        this.logger.error('Failed to parse GPS coordinates', err.stack);
+      }
+    }
 
     await this.create(profile);
 

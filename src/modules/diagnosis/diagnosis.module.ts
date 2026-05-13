@@ -6,6 +6,7 @@ import { AiModelModule } from '@modules/ai-model/ai-model.module';
 import { CloudinaryModule } from '@modules/cloudinary/cloudinary.module';
 import { DiseaseModule } from '@modules/disease/disease.module';
 import { NutritionModule } from '@modules/nutrition/nutrition.module';
+import { UserModule } from '@modules/user/user.module';
 
 import { DiagnosisController } from './diagnosis.controller';
 import { DiagnosisResult } from './entities/diagnosis-result.entity';
@@ -21,6 +22,7 @@ import { DiagnosisService } from './services/diagnosis.service';
     AiModelModule,
     DiseaseModule,
     NutritionModule,
+    UserModule,
   ],
   controllers: [DiagnosisController],
   providers: [DiagnosisService, DiagnosisResultService],

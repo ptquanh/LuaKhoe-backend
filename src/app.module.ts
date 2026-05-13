@@ -11,6 +11,7 @@ import { AuthModule } from '@modules/auth/auth.module';
 import { CloudinaryModule } from '@modules/cloudinary/cloudinary.module';
 import { DiagnosisModule } from '@modules/diagnosis/diagnosis.module';
 import { DiseaseModule } from '@modules/disease/disease.module';
+import { EmailModule } from '@modules/email/email.module';
 import { FeedbackModule } from '@modules/feedback/feedback.module';
 import { GlobalModule } from '@modules/global/global.module';
 import { HealthModule } from '@modules/health/health.module';
@@ -47,6 +48,7 @@ import configs from './configs';
     HealthModule,
     AuthModule,
     UserModule,
+    EmailModule,
     AiModelModule,
     CloudinaryModule,
     DiagnosisModule,
