@@ -1,7 +1,5 @@
-import {
-  ChatGoogleGenerativeAI,
-  GoogleGenerativeAIEmbeddings,
-} from '@langchain/google-genai';
+import { GoogleGenerativeAIEmbeddings } from '@langchain/google-genai';
+import { ChatGroq } from '@langchain/groq';
 import { Annotation, END, START, StateGraph } from '@langchain/langgraph';
 import { HttpResponse } from 'mvc-common-toolkit';
 import { Repository } from 'typeorm';
@@ -32,7 +30,7 @@ export class NutritionService
 {
   private readonly logger = new Logger(NutritionService.name);
   private embeddings: GoogleGenerativeAIEmbeddings;
-  private chatModel: ChatGoogleGenerativeAI;
+  private chatModel: any;
   private graph: any;
 
   constructor(
@@ -45,15 +43,16 @@ export class NutritionService
 
   onModuleInit() {
     const geminiConfig = this.configService.get(CONFIG_KEY.GEMINI);
+    const groqConfig = this.configService.get(CONFIG_KEY.GROQ);
 
     this.embeddings = new GoogleGenerativeAIEmbeddings({
       apiKey: geminiConfig.apiKey,
       modelName: geminiConfig.embeddingModelName,
     });
 
-    this.chatModel = new ChatGoogleGenerativeAI({
-      apiKey: geminiConfig.apiKey,
-      model: geminiConfig.modelName,
+    this.chatModel = new ChatGroq({
+      apiKey: groqConfig.apiKey,
+      model: groqConfig.modelName,
       temperature: 0.2,
     });
 

@@ -4,6 +4,7 @@ import {
   Get,
   Param,
   Post,
+  Query,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -20,7 +21,7 @@ import { RequestUser } from '@shared/decorators/request-user.decorator';
 import { AuthGuard } from '@shared/guards/auth.guard';
 import { UserAuthProfile } from '@shared/interfaces';
 
-import { CreateDiagnosisDto } from './diagnosis.dto';
+import { CreateDiagnosisDto, GetHistoryDto } from './diagnosis.dto';
 import { DiagnosisService } from './services/diagnosis.service';
 
 @ApiTags('Diagnosis')
@@ -44,8 +45,11 @@ export class DiagnosisController {
 
   @Get('history')
   @ApiOperation({ summary: 'Get user diagnosis history' })
-  async getHistory(@RequestUser() user: UserAuthProfile) {
-    return this.diagnosisService.getUserHistory(user.id);
+  async getHistory(
+    @RequestUser() user: UserAuthProfile,
+    @Query() dto: GetHistoryDto,
+  ) {
+    return this.diagnosisService.getUserHistory(user.id, dto);
   }
 
   @Get(':id')

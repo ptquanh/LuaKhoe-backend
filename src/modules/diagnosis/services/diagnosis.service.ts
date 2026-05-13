@@ -20,7 +20,7 @@ import {
 } from '@shared/helpers/operation-result.helper';
 import { BaseCRUDService } from '@shared/services/base-crud.service';
 
-import { CreateDiagnosisDto } from '../diagnosis.dto';
+import { CreateDiagnosisDto, GetHistoryDto } from '../diagnosis.dto';
 import { DiagnosisResult } from '../entities/diagnosis-result.entity';
 import { Diagnosis } from '../entities/diagnosis.entity';
 import { DiagnosisResultService } from './diagnosis-result.service';
@@ -137,19 +137,61 @@ export class DiagnosisService extends BaseCRUDService<Diagnosis> {
     });
   }
 
-  async getUserHistory(userId: string): Promise<HttpResponse<Diagnosis[]>> {
-    const history = await this.findAll(
-      { userId },
-      {
-        relations: {
-          results: {
-            disease: true,
-          },
-        },
-        sort: '-createdAt',
-      },
-    );
-    return generateSuccessResult(history);
+  async getUserHistory(
+    userId: string,
+    dto: GetHistoryDto,
+  ): Promise<HttpResponse<any>> {
+    const limit = dto.limit ? Number(dto.limit) : 10;
+    const offset = dto.offset ? Number(dto.offset) : 0;
+
+    const query = this.model
+      .createQueryBuilder('diagnosis')
+      .leftJoinAndSelect('diagnosis.results', 'result')
+      .leftJoinAndSelect('result.disease', 'disease')
+      .where('diagnosis.userId = :userId', { userId });
+
+    if (dto.fromDate) {
+      query.andWhere('diagnosis.createdAt >= :fromDate', {
+        fromDate: new Date(dto.fromDate),
+      });
+    }
+
+    if (dto.toDate) {
+      const toDate = new Date(dto.toDate);
+      toDate.setHours(23, 59, 59, 999);
+      query.andWhere('diagnosis.createdAt <= :toDate', { toDate });
+    }
+
+    if (dto.disease && dto.disease !== 'Tất cả') {
+      query.andWhere('disease.name = :disease', { disease: dto.disease });
+    }
+
+    if (dto.keyword) {
+      query.andWhere(
+        '(disease.name ILIKE :keyword OR diagnosis.envDescription ILIKE :keyword)',
+        { keyword: `%${dto.keyword}%` },
+      );
+    }
+
+    if (dto.sort) {
+      const orderDirection = dto.sort.startsWith('-') ? 'DESC' : 'ASC';
+      const sortField = dto.sort.replace(/^[+-]/, '');
+      query.orderBy(`diagnosis.${sortField}`, orderDirection);
+    } else {
+      query.orderBy('diagnosis.createdAt', 'DESC');
+    }
+
+    const [items, total] = await query
+      .take(limit)
+      .skip(offset)
+      .getManyAndCount();
+
+    return generateSuccessResult({
+      rows: items,
+      total,
+      limit,
+      offset,
+    });
   }
 
   async getById(id: string): Promise<HttpResponse<Diagnosis>> {

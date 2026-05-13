@@ -53,6 +53,7 @@ export enum CONFIG_KEY {
   CLOUDINARY = 'cloudinary',
   AI_SERVICE = 'aiService',
   GEMINI = 'gemini',
+  GROQ = 'groq',
 }
 
 export const ENV_KEY = {

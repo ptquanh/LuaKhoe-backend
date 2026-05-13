@@ -10,16 +10,12 @@ class GeminiConfig {
   apiKey: string;
 
   @IsString()
-  modelName: string;
-
-  @IsString()
   embeddingModelName: string;
 }
 
 export const geminiConfig = registerAs(CONFIG_KEY.GEMINI || 'gemini', () => {
   const config = {
     apiKey: process.env.GOOGLE_GENAI_API_KEY || '',
-    modelName: process.env.GEMINI_MODEL_NAME || 'gemini-1.5-flash',
     embeddingModelName:
       process.env.GEMINI_EMBEDDING_MODEL_NAME || 'text-embedding-004',
   };

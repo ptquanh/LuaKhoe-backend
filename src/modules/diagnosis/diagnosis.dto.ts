@@ -1,6 +1,8 @@
 import { IsNumber, IsOptional, IsString } from 'class-validator';
 
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+
+import { PaginatedByKeywordAndDateTimeDTO } from '@shared/common/pagination.dto';
 
 export class CreateDiagnosisDto {
   @ApiProperty({
@@ -24,4 +26,11 @@ export class CreateDiagnosisDto {
   @IsOptional()
   @IsString()
   envDescription?: string;
+}
+
+export class GetHistoryDto extends PaginatedByKeywordAndDateTimeDTO {
+  @ApiPropertyOptional({ description: 'Filter by specific disease name' })
+  @IsOptional()
+  @IsString()
+  disease?: string;
 }

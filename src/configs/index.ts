@@ -4,6 +4,7 @@ import cloudinaryConfig from './cloudinary.config';
 import databaseConfig from './database.config';
 import emailConfig from './email.config';
 import geminiConfig from './gemini.config';
+import groqConfig from './groq.config';
 import jwtConfig from './jwt.config';
 import redisConfig from './redis.config';
 
@@ -14,6 +15,7 @@ export default [
   databaseConfig,
   emailConfig,
   geminiConfig,
+  groqConfig,
   jwtConfig,
   redisConfig,
 ];
