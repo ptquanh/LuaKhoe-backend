@@ -20,7 +20,7 @@ export class Feedback {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => Diagnosis)
+  @ManyToOne(() => Diagnosis, (diagnosis) => diagnosis.feedbacks)
   @JoinColumn({ name: 'diagnosis_id' })
   diagnosis: Diagnosis;
 

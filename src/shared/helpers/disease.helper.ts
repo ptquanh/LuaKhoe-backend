@@ -20,11 +20,26 @@ interface DiseaseMapping {
 }
 
 const diseaseMappings: DiseaseMapping[] = [
-  { diseaseClass: RiceDiseaseClass.BACTERIAL_BLIGHT, vietnameseName: RiceDiseaseVietnamese.BACTERIAL_BLIGHT },
-  { diseaseClass: RiceDiseaseClass.BROWN_SPOT, vietnameseName: RiceDiseaseVietnamese.BROWN_SPOT },
-  { diseaseClass: RiceDiseaseClass.RICE_BLAST, vietnameseName: RiceDiseaseVietnamese.RICE_BLAST },
-  { diseaseClass: RiceDiseaseClass.RICE_TUNGRO, vietnameseName: RiceDiseaseVietnamese.RICE_TUNGRO },
-  { diseaseClass: RiceDiseaseClass.SHEATH_BLIGHT, vietnameseName: RiceDiseaseVietnamese.SHEATH_BLIGHT },
+  {
+    diseaseClass: RiceDiseaseClass.BACTERIAL_BLIGHT,
+    vietnameseName: RiceDiseaseVietnamese.BACTERIAL_BLIGHT,
+  },
+  {
+    diseaseClass: RiceDiseaseClass.BROWN_SPOT,
+    vietnameseName: RiceDiseaseVietnamese.BROWN_SPOT,
+  },
+  {
+    diseaseClass: RiceDiseaseClass.RICE_BLAST,
+    vietnameseName: RiceDiseaseVietnamese.RICE_BLAST,
+  },
+  {
+    diseaseClass: RiceDiseaseClass.RICE_TUNGRO,
+    vietnameseName: RiceDiseaseVietnamese.RICE_TUNGRO,
+  },
+  {
+    diseaseClass: RiceDiseaseClass.SHEATH_BLIGHT,
+    vietnameseName: RiceDiseaseVietnamese.SHEATH_BLIGHT,
+  },
 ];
 
 /**
@@ -43,4 +58,3 @@ export function getVietnameseDiseaseName(diseaseName: string): string | null {
 
   return null;
 }
-

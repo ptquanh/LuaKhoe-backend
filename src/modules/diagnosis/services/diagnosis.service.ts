@@ -14,11 +14,11 @@ import { CloudinaryService } from '@modules/cloudinary/cloudinary.service';
 import { DiseaseService } from '@modules/disease/disease.service';
 import { NutritionService } from '@modules/nutrition/nutrition.service';
 
+import { getVietnameseDiseaseName } from '@shared/helpers/disease.helper';
 import {
   generateNotFoundResult,
   generateSuccessResult,
 } from '@shared/helpers/operation-result.helper';
-import { getVietnameseDiseaseName } from '@shared/helpers/disease.helper';
 import { BaseCRUDService } from '@shared/services/base-crud.service';
 
 import { CreateDiagnosisDto, GetHistoryDto } from '../diagnosis.dto';
@@ -119,7 +119,8 @@ export class DiagnosisService extends BaseCRUDService<Diagnosis> {
     // 7. Generate RAG Advisory for the primary disease
     let advisory = null;
     let diseaseName = 'Lúa khỏe mạnh / Không rõ bệnh';
-    let confidence = detections && detections.length > 0 ? detections[0].confidence : 0.95;
+    let confidence =
+      detections && detections.length > 0 ? detections[0].confidence : 0.95;
     if (diagnosisResults.length > 0) {
       const topResult = diagnosisResults.sort(
         (a, b) => b.confidence - a.confidence,
@@ -141,11 +142,18 @@ export class DiagnosisService extends BaseCRUDService<Diagnosis> {
 
     // Determine severity
     let severity = 'medium';
-    if (advisory && advisory.advisory && advisory.advisory.severity_assessment) {
+    if (
+      advisory &&
+      advisory.advisory &&
+      advisory.advisory.severity_assessment
+    ) {
       const sevText = advisory.advisory.severity_assessment.toLowerCase();
-      if (sevText.includes('cấp bách') || sevText.includes('critical')) severity = 'critical';
-      else if (sevText.includes('nghiêm trọng') || sevText.includes('high')) severity = 'high';
-      else if (sevText.includes('nhẹ') || sevText.includes('low')) severity = 'low';
+      if (sevText.includes('cấp bách') || sevText.includes('critical'))
+        severity = 'critical';
+      else if (sevText.includes('nghiêm trọng') || sevText.includes('high'))
+        severity = 'high';
+      else if (sevText.includes('nhẹ') || sevText.includes('low'))
+        severity = 'low';
     } else if (diseaseName === 'Lúa khỏe mạnh / Không rõ bệnh') {
       severity = 'low';
     } else if (confidence > 0.8) {
@@ -153,13 +161,20 @@ export class DiagnosisService extends BaseCRUDService<Diagnosis> {
     }
 
     const mappedDetections = (detections || []).map((pred) => ({
-      disease: getVietnameseDiseaseName(pred.disease || pred.class_name) || pred.disease || 'Lúa khỏe mạnh / Không rõ bệnh',
+      disease:
+        getVietnameseDiseaseName(pred.disease || pred.class_name) ||
+        pred.disease ||
+        'Lúa khỏe mạnh / Không rõ bệnh',
       confidence: pred.confidence,
       color: pred.color,
     }));
 
     if (mappedDetections.length === 0) {
-      mappedDetections.push({ disease: 'Lúa khỏe mạnh / Không rõ bệnh', confidence, color: null } as any);
+      mappedDetections.push({
+        disease: 'Lúa khỏe mạnh / Không rõ bệnh',
+        confidence,
+        color: null,
+      } as any);
     }
 
     return generateSuccessResult({
@@ -192,6 +207,7 @@ export class DiagnosisService extends BaseCRUDService<Diagnosis> {
       .createQueryBuilder('diagnosis')
       .leftJoinAndSelect('diagnosis.results', 'result')
       .leftJoinAndSelect('result.disease', 'disease')
+      .leftJoinAndSelect('diagnosis.feedbacks', 'feedback')
       .where('diagnosis.userId = :userId', { userId });
 
     if (dto.fromDate) {
@@ -213,6 +229,20 @@ export class DiagnosisService extends BaseCRUDService<Diagnosis> {
         query.andWhere('disease.name ILIKE :disease', {
           disease: `%${dto.disease}%`,
         });
+      }
+    }
+
+    if (dto.feedbackStatus && dto.feedbackStatus !== 'Tất cả') {
+      if (dto.feedbackStatus === 'Đã gửi phản hồi') {
+        query.andWhere('feedback.id IS NOT NULL');
+      } else if (dto.feedbackStatus === 'Chờ phản hồi') {
+        query.andWhere('feedback.status = :fStatus', { fStatus: 'PENDING' });
+      } else if (dto.feedbackStatus === 'Đã duyệt') {
+        query.andWhere('feedback.status = :fStatus', { fStatus: 'ACCEPTED' });
+      } else if (dto.feedbackStatus === 'Đã từ chối') {
+        query.andWhere('feedback.status = :fStatus', { fStatus: 'REJECTED' });
+      } else if (dto.feedbackStatus === 'Chưa gửi phản hồi') {
+        query.andWhere('feedback.id IS NULL');
       }
     }
 
@@ -288,11 +318,18 @@ export class DiagnosisService extends BaseCRUDService<Diagnosis> {
 
     // Determine severity
     let severity = 'medium';
-    if (advisory && advisory.advisory && advisory.advisory.severity_assessment) {
+    if (
+      advisory &&
+      advisory.advisory &&
+      advisory.advisory.severity_assessment
+    ) {
       const sevText = advisory.advisory.severity_assessment.toLowerCase();
-      if (sevText.includes('cấp bách') || sevText.includes('critical')) severity = 'critical';
-      else if (sevText.includes('nghiêm trọng') || sevText.includes('high')) severity = 'high';
-      else if (sevText.includes('nhẹ') || sevText.includes('low')) severity = 'low';
+      if (sevText.includes('cấp bách') || sevText.includes('critical'))
+        severity = 'critical';
+      else if (sevText.includes('nghiêm trọng') || sevText.includes('high'))
+        severity = 'high';
+      else if (sevText.includes('nhẹ') || sevText.includes('low'))
+        severity = 'low';
     } else if (diseaseName === 'Lúa khỏe mạnh / Không rõ bệnh') {
       severity = 'low';
     } else if (confidence > 0.8) {
@@ -307,7 +344,12 @@ export class DiagnosisService extends BaseCRUDService<Diagnosis> {
     }));
 
     if (mappedDetections.length === 0) {
-      mappedDetections.push({ disease: 'Lúa khỏe mạnh / Không rõ bệnh', confidence, color: null, maskPolygon: null } as any);
+      mappedDetections.push({
+        disease: 'Lúa khỏe mạnh / Không rõ bệnh',
+        confidence,
+        color: null,
+        maskPolygon: null,
+      } as any);
     }
 
     return generateSuccessResult({

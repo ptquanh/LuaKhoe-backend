@@ -33,4 +33,9 @@ export class GetHistoryDto extends PaginatedByKeywordAndDateTimeDTO {
   @IsOptional()
   @IsString()
   disease?: string;
+
+  @ApiPropertyOptional({ description: 'Filter by feedback status' })
+  @IsOptional()
+  @IsString()
+  feedbackStatus?: string;
 }

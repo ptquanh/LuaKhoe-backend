@@ -1,23 +1,29 @@
 import { HttpResponse } from 'mvc-common-toolkit';
 
-import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Put, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Post,
+  Put,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
+import { PaginationDTO } from '@shared/common/pagination.dto';
 import { RequestUser } from '@shared/decorators/request-user.decorator';
 import { Roles } from '@shared/decorators/roles.decorator';
 import { ROLE } from '@shared/enums';
 import { AuthGuard } from '@shared/guards/auth.guard';
 import { RolesGuard } from '@shared/guards/roles.guard';
+import { generateSuccessResult } from '@shared/helpers/operation-result.helper';
 import { UserAuthProfile } from '@shared/interfaces';
 
 import { CreateAiModelDto } from './ai-model.dto';
 import { AiModelService } from './ai-model.service';
-
-import { PaginationDTO } from '@shared/common/pagination.dto';
-
-import {
-  generateSuccessResult,
-} from '@shared/helpers/operation-result.helper';
 
 @ApiTags('AI Models')
 @ApiBearerAuth()
@@ -57,7 +63,9 @@ export class AiModelController {
   @Put(':id/active')
   @ApiOperation({ summary: 'Set an AI model as active' })
   @Roles(ROLE.ADMIN)
-  async setActive(@Param('id', ParseUUIDPipe) id: string): Promise<HttpResponse> {
+  async setActive(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<HttpResponse> {
     return this.aiModelService.setActive(id);
   }
 

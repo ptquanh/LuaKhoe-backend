@@ -9,6 +9,7 @@ import {
 } from 'typeorm';
 
 import { AiModel } from '@modules/ai-model/ai-model.entity';
+import { Feedback } from '@modules/feedback/entities/feedback.entity';
 import { User } from '@modules/user/entities/user.entity';
 
 import { DiagnosisResult } from './diagnosis-result.entity';
@@ -74,4 +75,7 @@ export class Diagnosis {
     cascade: true,
   })
   results: DiagnosisResult[];
+
+  @OneToMany(() => Feedback, (feedback) => feedback.diagnosis)
+  feedbacks: Feedback[];
 }

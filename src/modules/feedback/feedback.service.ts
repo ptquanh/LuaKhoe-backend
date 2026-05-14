@@ -65,7 +65,11 @@ export class FeedbackService extends BaseCRUDService<Feedback> {
           actualDiseases: {
             disease: true,
           },
-          diagnosis: true,
+          diagnosis: {
+            results: {
+              disease: true,
+            },
+          },
         },
         sort: '-createdAt',
       },
@@ -79,7 +83,11 @@ export class FeedbackService extends BaseCRUDService<Feedback> {
       {
         relations: {
           user: true,
-          diagnosis: true,
+          diagnosis: {
+            results: {
+              disease: true,
+            },
+          },
           actualDiseases: {
             disease: true,
           },
