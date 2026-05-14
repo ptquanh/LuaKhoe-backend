@@ -207,14 +207,27 @@ export class DiagnosisService extends BaseCRUDService<Diagnosis> {
     }
 
     if (dto.disease && dto.disease !== 'Tất cả') {
-      query.andWhere('disease.name = :disease', { disease: dto.disease });
+      if (dto.disease === 'Khỏe mạnh') {
+        query.andWhere('result.id IS NULL');
+      } else {
+        query.andWhere('disease.name ILIKE :disease', {
+          disease: `%${dto.disease}%`,
+        });
+      }
     }
 
     if (dto.keyword) {
-      query.andWhere(
-        '(disease.name ILIKE :keyword OR diagnosis.envDescription ILIKE :keyword)',
-        { keyword: `%${dto.keyword}%` },
-      );
+      if (dto.keyword.toLowerCase().includes('khỏe mạnh')) {
+        query.andWhere(
+          '(disease.name ILIKE :keyword OR diagnosis.envDescription ILIKE :keyword OR result.id IS NULL)',
+          { keyword: `%${dto.keyword}%` },
+        );
+      } else {
+        query.andWhere(
+          '(disease.name ILIKE :keyword OR diagnosis.envDescription ILIKE :keyword)',
+          { keyword: `%${dto.keyword}%` },
+        );
+      }
     }
 
     if (dto.sort) {
@@ -238,7 +251,7 @@ export class DiagnosisService extends BaseCRUDService<Diagnosis> {
     });
   }
 
-  async getById(id: string): Promise<HttpResponse<Diagnosis>> {
+  async getById(id: string): Promise<HttpResponse<any>> {
     const diagnosis = await this.findOne(
       { id },
       {
@@ -253,6 +266,63 @@ export class DiagnosisService extends BaseCRUDService<Diagnosis> {
 
     if (!diagnosis) return generateNotFoundResult(`Diagnosis ${id} not found`);
 
-    return generateSuccessResult(diagnosis);
+    const results = diagnosis.results || [];
+    let advisory = null;
+    let diseaseName = 'Lúa khỏe mạnh / Không rõ bệnh';
+    let confidence = 0.95;
+
+    if (results.length > 0) {
+      const topResult = [...results].sort(
+        (a, b) => Number(b.confidence) - Number(a.confidence),
+      )[0];
+      confidence = Number(topResult.confidence);
+      if (topResult.disease) {
+        diseaseName = topResult.disease.name;
+        const advisoryResult = await this.nutritionService.getAdvisory(
+          diseaseName,
+          diagnosis.envDescription,
+        );
+        advisory = advisoryResult.success ? advisoryResult.data : null;
+      }
+    }
+
+    // Determine severity
+    let severity = 'medium';
+    if (advisory && advisory.advisory && advisory.advisory.severity_assessment) {
+      const sevText = advisory.advisory.severity_assessment.toLowerCase();
+      if (sevText.includes('cấp bách') || sevText.includes('critical')) severity = 'critical';
+      else if (sevText.includes('nghiêm trọng') || sevText.includes('high')) severity = 'high';
+      else if (sevText.includes('nhẹ') || sevText.includes('low')) severity = 'low';
+    } else if (diseaseName === 'Lúa khỏe mạnh / Không rõ bệnh') {
+      severity = 'low';
+    } else if (confidence > 0.8) {
+      severity = 'high';
+    }
+
+    const mappedDetections = results.map((res) => ({
+      disease: res.disease ? res.disease.name : 'Lúa khỏe mạnh / Không rõ bệnh',
+      confidence: Number(res.confidence),
+      color: res.color,
+      maskPolygon: res.maskPolygon,
+    }));
+
+    if (mappedDetections.length === 0) {
+      mappedDetections.push({ disease: 'Lúa khỏe mạnh / Không rõ bệnh', confidence, color: null, maskPolygon: null } as any);
+    }
+
+    return generateSuccessResult({
+      ...diagnosis,
+      results: mappedDetections,
+      advisory,
+      disease_key: diseaseName,
+      disease_name: advisory?.advisory?.disease_name || diseaseName,
+      confidence,
+      severity,
+      detections: mappedDetections,
+      rag_recommendation: advisory?.advisory || null,
+      annotated_image: diagnosis.resultImageUrl || diagnosis.originalImageUrl,
+      low_confidence: confidence < 0.7,
+      latency_ms: 350,
+    });
   }
 }
