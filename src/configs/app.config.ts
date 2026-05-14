@@ -26,6 +26,9 @@ class AppConfig {
   enableSwagger: boolean;
 
   @IsString()
+  appName: string;
+
+  @IsString()
   serviceName: string;
 
   @IsString()

@@ -18,6 +18,7 @@ import {
   generateNotFoundResult,
   generateSuccessResult,
 } from '@shared/helpers/operation-result.helper';
+import { getVietnameseDiseaseName } from '@shared/helpers/disease.helper';
 import { BaseCRUDService } from '@shared/services/base-crud.service';
 
 import { CreateDiagnosisDto, GetHistoryDto } from '../diagnosis.dto';
@@ -92,9 +93,12 @@ export class DiagnosisService extends BaseCRUDService<Diagnosis> {
     let diagnosisResults: DiagnosisResult[] = [];
     const diagnosisResultsData: Partial<DiagnosisResult>[] = [];
     for (const pred of detections || []) {
-      const diseaseName = pred.disease || pred.class_name;
+      const rawName = pred.disease || pred.class_name;
+      const mappedDiseaseName = getVietnameseDiseaseName(rawName);
+      if (!mappedDiseaseName) continue;
+
       const diseaseResult =
-        await this.diseaseService.findOrCreateByName(diseaseName);
+        await this.diseaseService.findOrCreateByName(mappedDiseaseName);
       if (!diseaseResult.success) continue;
       const disease = diseaseResult.data;
 
@@ -103,6 +107,7 @@ export class DiagnosisService extends BaseCRUDService<Diagnosis> {
         diseaseId: disease.id,
         confidence: pred.confidence,
         maskPolygon: pred.box || pred.polygon,
+        color: pred.color,
       });
     }
 
@@ -113,15 +118,19 @@ export class DiagnosisService extends BaseCRUDService<Diagnosis> {
 
     // 7. Generate RAG Advisory for the primary disease
     let advisory = null;
+    let diseaseName = 'Lúa khỏe mạnh / Không rõ bệnh';
+    let confidence = detections && detections.length > 0 ? detections[0].confidence : 0.95;
     if (diagnosisResults.length > 0) {
       const topResult = diagnosisResults.sort(
         (a, b) => b.confidence - a.confidence,
       )[0];
+      confidence = topResult.confidence;
       const diseaseResult = await this.diseaseService.findById(
         topResult.diseaseId,
       );
       if (diseaseResult.success) {
         const disease = diseaseResult.data;
+        diseaseName = disease.name;
         const advisoryResult = await this.nutritionService.getAdvisory(
           disease.name,
           dto.envDescription,
@@ -130,10 +139,45 @@ export class DiagnosisService extends BaseCRUDService<Diagnosis> {
       }
     }
 
+    // Determine severity
+    let severity = 'medium';
+    if (advisory && advisory.advisory && advisory.advisory.severity_assessment) {
+      const sevText = advisory.advisory.severity_assessment.toLowerCase();
+      if (sevText.includes('cấp bách') || sevText.includes('critical')) severity = 'critical';
+      else if (sevText.includes('nghiêm trọng') || sevText.includes('high')) severity = 'high';
+      else if (sevText.includes('nhẹ') || sevText.includes('low')) severity = 'low';
+    } else if (diseaseName === 'Lúa khỏe mạnh / Không rõ bệnh') {
+      severity = 'low';
+    } else if (confidence > 0.8) {
+      severity = 'high';
+    }
+
+    const mappedDetections = (detections || []).map((pred) => ({
+      disease: getVietnameseDiseaseName(pred.disease || pred.class_name) || pred.disease || 'Lúa khỏe mạnh / Không rõ bệnh',
+      confidence: pred.confidence,
+      color: pred.color,
+    }));
+
+    if (mappedDetections.length === 0) {
+      mappedDetections.push({ disease: 'Lúa khỏe mạnh / Không rõ bệnh', confidence, color: null } as any);
+    }
+
     return generateSuccessResult({
+      // Entity fields
       ...savedDiagnosis,
-      results: diagnosisResults,
+      results: mappedDetections,
       advisory,
+
+      // Enriched DiagnoseResult fields
+      disease_key: diseaseName,
+      disease_name: advisory?.advisory?.disease_name || diseaseName,
+      confidence,
+      severity,
+      detections: mappedDetections,
+      rag_recommendation: advisory?.advisory || null,
+      annotated_image: resultImageUrl || originalImageUrl,
+      low_confidence: confidence < 0.7,
+      latency_ms: 450,
     });
   }
 

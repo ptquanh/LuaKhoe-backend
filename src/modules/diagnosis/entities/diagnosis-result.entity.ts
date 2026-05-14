@@ -36,4 +36,7 @@ export class DiagnosisResult {
 
   @Column({ name: 'mask_polygon', type: 'jsonb', nullable: true })
   maskPolygon: Record<string, any>;
+
+  @Column({ type: 'varchar', length: 20, nullable: true })
+  color: string;
 }

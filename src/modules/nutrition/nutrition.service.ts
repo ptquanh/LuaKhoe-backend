@@ -8,7 +8,7 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 
-import { CONFIG_KEY } from '@shared/constants';
+import { ENV_KEY } from '@shared/constants';
 import { generateSuccessResult } from '@shared/helpers/operation-result.helper';
 import { BaseCRUDService } from '@shared/services/base-crud.service';
 
@@ -20,7 +20,7 @@ const GraphState = Annotation.Root({
   query: Annotation<string>(),
   context: Annotation<string>(),
   documents: Annotation<any[]>(),
-  answer: Annotation<string>(),
+  answer: Annotation<any>(),
 });
 
 @Injectable()
@@ -42,18 +42,24 @@ export class NutritionService
   }
 
   onModuleInit() {
-    const geminiConfig = this.configService.get(CONFIG_KEY.GEMINI);
-    const groqConfig = this.configService.get(CONFIG_KEY.GROQ);
+    const geminiApiKey = this.configService.get<string>(ENV_KEY.GEMINI_API_KEY);
+    const geminiModel = this.configService.get<string>(
+      ENV_KEY.GEMINI_EMBEDDING_MODEL_NAME,
+    );
+    const groqApiKey = this.configService.get<string>(ENV_KEY.GROQ_API_KEY);
+    const groqModel = this.configService.get<string>(ENV_KEY.GROQ_MODEL_NAME);
 
     this.embeddings = new GoogleGenerativeAIEmbeddings({
-      apiKey: geminiConfig.apiKey,
-      modelName: geminiConfig.embeddingModelName,
+      apiKey: geminiApiKey,
+      modelName: geminiModel,
     });
 
     this.chatModel = new ChatGroq({
-      apiKey: groqConfig.apiKey,
-      model: groqConfig.modelName,
-      temperature: 0.2,
+      apiKey: groqApiKey,
+      model: groqModel,
+      temperature: 0.4,
+      maxTokens: 4096,
+      maxRetries: 3,
     });
 
     this.setupGraph();
@@ -77,7 +83,7 @@ export class NutritionService
     // Similarity search using pgvector via raw SQL
     // We use cosine distance <=> operator
     const docs = await this.model.query(
-      `SELECT id, content, source, chunk_metadata as metadata, (embedding <=> $1::vector) as distance 
+      `SELECT id, content, source, chunk_metadata as metadata, (embedding::vector <=> $1::vector) as distance 
        FROM nutritions 
        ORDER BY distance ASC 
        LIMIT 3`,
@@ -99,23 +105,56 @@ Ngữ cảnh bổ sung: ${state.query}
 Sử dụng tài liệu chuyên môn sau đây để đưa ra lời khuyên chi tiết cho người nông dân:
 ${contextStr}
 
-Yêu cầu:
+Yêu cầu BẮT BUỘC:
 1. Trả lời bằng tiếng Việt, giọng điệu thân thiện, dễ hiểu cho nông dân.
-2. Đưa ra các bước xử lý cụ thể (phân bón, thuốc bảo vệ thực vật nếu có trong tài liệu).
-3. Nếu không có thông tin trong tài liệu, hãy dựa trên kiến thức chuyên môn về lúa gạo của bạn để hỗ trợ nhưng phải lưu ý nông dân nên tham khảo cán bộ địa phương.
-
-Câu trả lời:`;
+2. Dựa trên thông tin tài liệu, đưa ra các bước xử lý cụ thể (phân bón, thuốc bảo vệ thực vật sinh học/hóa học).
+3. KHÔNG trả lời dưới dạng văn bản tự do hay markdown. CHỈ trả về KẾT QUẢ DUY NHẤT LÀ MỘT CHUỖI JSON ĐÚNG CHUẨN (không bọc trong markdown code block \`\`\`json) theo đúng định dạng sau:
+{
+  "summary": "Lời chào thân thiện và tóm tắt ngắn gọn tình trạng bệnh / nguyên nhân",
+  "disease_name": "Tên bệnh bằng tiếng Việt chuẩn",
+  "severity_assessment": "Đánh giá mức độ nghiêm trọng: Nhẹ / Trung bình / Nghiêm trọng / Cấp bách",
+  "immediate_actions": ["Hành động khẩn cấp 1 cần làm ngay", "Hành động khẩn cấp 2 cần làm ngay"],
+  "treatment_protocol": {
+    "biological": "Biện pháp sinh học / canh tác / điều chỉnh nước",
+    "chemical": "Thuốc bảo vệ thực vật / biện pháp hóa học (ghi rõ hoạt chất nếu có)",
+    "cultural": "Biện pháp canh tác làm đất, vệ sinh đồng ruộng"
+  },
+  "npk_adjustment": "Hướng dẫn điều chỉnh phân bón NPK chi tiết",
+  "prevention_measures": ["Biện pháp phòng ngừa lâu dài 1", "Biện pháp phòng ngừa lâu dài 2"]
+}
+4. Lời khuyên phải NGẮN GỌN, SÚC TÍCH, đi thẳng vào vấn đề. Tuyệt đối KHÔNG lặp lại các từ ngữ (tránh lỗi lặp từ). Đảm bảo JSON sinh ra hoàn chỉnh và đúng cấu trúc.`;
 
     const response = await this.chatModel.invoke(prompt);
-    return { answer: response.content };
+
+    let parsedAnswer: any = {};
+    try {
+      let rawContent = response.content.trim();
+      const firstCurly = rawContent.indexOf('{');
+      const lastCurly = rawContent.lastIndexOf('}');
+      if (firstCurly !== -1 && lastCurly !== -1 && lastCurly > firstCurly) {
+        rawContent = rawContent.substring(firstCurly, lastCurly + 1);
+      }
+      parsedAnswer = JSON.parse(rawContent);
+    } catch (error) {
+      this.logger.warn(
+        `Failed to parse JSON from LLM response: ${error.message}`,
+      );
+      parsedAnswer = {
+        summary: response.content,
+        disease_name: state.disease,
+        severity_assessment: 'Trung bình',
+        immediate_actions: [],
+        treatment_protocol: { biological: '', chemical: '', cultural: '' },
+        npk_adjustment: '',
+        prevention_measures: [],
+      };
+    }
+
+    return { answer: parsedAnswer };
   }
 
   /**
-   * Placeholder for RAG Advisory.
-   * This will eventually use langchain.js / langgraph.js to:
-   * 1. Embed the query.
-   * 2. Perform similarity search in pgvector.
-   * 3. Call LLM (Gemini) for answer generation.
+   * RAG Advisory generating structured JSON.
    */
   async getAdvisory(
     diseaseName: string,

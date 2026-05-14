@@ -15,7 +15,7 @@ class GroqConfig {
 export const groqConfig = registerAs('groq', () => {
   const config = {
     apiKey: process.env.GROQ_API_KEY || '',
-    modelName: process.env.GROQ_MODEL_NAME || 'gpt/oss-120b',
+    modelName: process.env.GROQ_MODEL_NAME || 'llama3-8b-8192',
   };
 
   validateConfig(config, GroqConfig);

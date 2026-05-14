@@ -52,10 +52,21 @@ export class AiModelService extends BaseCRUDService<AiModel> {
   }
 
   async setActive(id: string): Promise<HttpResponse<AiModel>> {
-    // Deactivate all models first
-    await this.aiModelRepo.update({}, { isActive: false });
+    // Get the target model
+    const targetModel = await this.findById(id);
+    if (!targetModel.success) {
+      return targetModel;
+    }
+
+    // If the target is already active, do nothing
+    if (targetModel.data.isActive) {
+      return targetModel;
+    }
+
+    // Deactivate currently active models first
+    await this.bulkUpdate({ isActive: true }, { isActive: false });
     // Activate the target
-    await this.aiModelRepo.update(id, { isActive: true });
-    return this.findById(id);
+    const result = await this.updateByID(id, { isActive: true });
+    return generateSuccessResult(result);
   }
 }
