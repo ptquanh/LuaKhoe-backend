@@ -2,6 +2,7 @@ import {
   Column,
   Entity,
   Index,
+  OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
@@ -11,6 +12,7 @@ import { ENTITY_STATUS } from '@shared/constants';
 import { ROLE } from '@shared/enums';
 
 import { UserProfile } from './user-profile.entity';
+import { UserSocialAccount } from './user-social-account.entity';
 
 @Entity('users')
 export class User extends AuditWithTimezone {
@@ -42,4 +44,7 @@ export class User extends AuditWithTimezone {
 
   @OneToOne(() => UserProfile, (profile) => profile.user)
   profile: UserProfile;
+
+  @OneToMany(() => UserSocialAccount, (social) => social.user)
+  socialAccounts: UserSocialAccount[];
 }

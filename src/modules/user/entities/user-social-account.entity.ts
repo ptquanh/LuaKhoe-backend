@@ -1,13 +1,27 @@
-import { Column, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  Index,
+  JoinColumn,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 
 import { AuditWithTimezone } from '@shared/common/audit.entity';
 
+import { User } from './user.entity';
+
 @Entity('user_social_accounts')
+@Index(['userId', 'provider'], { unique: true })
 export class UserSocialAccount extends AuditWithTimezone {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ name: 'user_id', unique: true })
+  @ManyToOne(() => User, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'user_id' })
+  user: User;
+
+  @Column({ name: 'user_id' })
   @Index()
   userId: string;
 

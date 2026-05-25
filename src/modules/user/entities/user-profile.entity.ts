@@ -27,10 +27,4 @@ export class UserProfile extends AuditWithTimezone {
 
   @Column({ name: 'last_name', type: 'varchar', nullable: true })
   lastName: string;
-
-  @Column({ name: 'gps_latitude', type: 'float', nullable: true })
-  gpsLatitude: number;
-
-  @Column({ name: 'gps_longitude', type: 'float', nullable: true })
-  gpsLongitude: number;
 }

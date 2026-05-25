@@ -2,10 +2,12 @@ import { Entity, JoinColumn, ManyToOne, PrimaryColumn } from 'typeorm';
 
 import { Disease } from '@modules/disease/disease.entity';
 
+import { AuditWithTimezone } from '@shared/common/audit.entity';
+
 import { Feedback } from './feedback.entity';
 
 @Entity('feedback_actual_diseases')
-export class FeedbackActualDisease {
+export class FeedbackActualDisease extends AuditWithTimezone {
   @PrimaryColumn({ name: 'feedback_id', type: 'uuid' })
   feedbackId: string;
 
@@ -18,7 +20,7 @@ export class FeedbackActualDisease {
   @JoinColumn({ name: 'feedback_id' })
   feedback: Feedback;
 
-  @ManyToOne(() => Disease)
+  @ManyToOne(() => Disease, { onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'disease_id' })
   disease: Disease;
 }

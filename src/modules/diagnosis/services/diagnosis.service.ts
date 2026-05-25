@@ -65,10 +65,14 @@ export class DiagnosisService extends BaseCRUDService<Diagnosis> {
     const aiResponse = await firstValueFrom(
       this.httpService.post(`${this.aiConfig.baseUrl}/predict`, {
         image_url: originalImageUrl,
+        province: dto.province,
+        gps_lat: dto.gpsLat,
+        gps_lng: dto.gpsLng,
+        field_params: dto.fieldParams,
       }),
     );
 
-    const { detections, annotated_image } = aiResponse.data;
+    const { detections, annotated_image, env_adjustment } = aiResponse.data;
 
     // 4. Upload annotated result image to Cloudinary
     let resultImageUrl = null;
@@ -85,8 +89,11 @@ export class DiagnosisService extends BaseCRUDService<Diagnosis> {
       resultImageUrl,
       gpsLat: dto.gpsLat,
       gpsLng: dto.gpsLng,
+      province: dto.province,
       envDescription: dto.envDescription,
+      fieldParams: dto.fieldParams,
       modelVersionId: activeModel.id,
+      weatherData: env_adjustment?.weather || null,
     });
 
     // 6. Save Individual Results
@@ -132,11 +139,25 @@ export class DiagnosisService extends BaseCRUDService<Diagnosis> {
       if (diseaseResult.success) {
         const disease = diseaseResult.data;
         diseaseName = disease.name;
+        // Merge fieldParams into envDescription for better RAG context if fieldParams exists
+        let ragEnvContext = dto.envDescription || '';
+        if (dto.fieldParams) {
+          const fp = dto.fieldParams;
+          const fpStr = `[Thông số đồng ruộng: Nước: ${fp.water || 'Bình thường'}, Giai đoạn: ${fp.growth || 'Đẻ nhánh'}, Mật độ: ${fp.density || 'Vừa'}, Sương mù: ${fp.fog ? 'Có' : 'Không'}, Rầy nâu: ${fp.leafhopper ? 'Có' : 'Không'}, Phun thuốc gần đây: ${fp.pesticide ? 'Có' : 'Không'}]`;
+          ragEnvContext = ragEnvContext ? `${ragEnvContext}. ${fpStr}` : fpStr;
+        }
+
         const advisoryResult = await this.nutritionService.getAdvisory(
           disease.name,
-          dto.envDescription,
+          ragEnvContext,
         );
-        advisory = advisoryResult.success ? advisoryResult.data : null;
+        if (advisoryResult.success) {
+          advisory = advisoryResult.data;
+          // Persist advisory to the top result
+          await this.diagnosisResultService.updateByID(topResult.id, {
+            advisory: advisory.advisory,
+          });
+        }
       }
     }
 
@@ -193,6 +214,7 @@ export class DiagnosisService extends BaseCRUDService<Diagnosis> {
       annotated_image: resultImageUrl || originalImageUrl,
       low_confidence: confidence < 0.7,
       latency_ms: 450,
+      env_adjustment,
     });
   }
 
@@ -289,7 +311,7 @@ export class DiagnosisService extends BaseCRUDService<Diagnosis> {
           results: {
             disease: true,
           },
-          modelVersion: true,
+          aiModel: true,
         },
       },
     );
@@ -306,7 +328,15 @@ export class DiagnosisService extends BaseCRUDService<Diagnosis> {
         (a, b) => Number(b.confidence) - Number(a.confidence),
       )[0];
       confidence = Number(topResult.confidence);
-      if (topResult.disease) {
+
+      if (topResult.advisory) {
+        // Use persisted advisory
+        advisory = { advisory: topResult.advisory };
+        if (topResult.disease) {
+          diseaseName = topResult.disease.name;
+        }
+      } else if (topResult.disease) {
+        // Fallback for old records or failed persistence
         diseaseName = topResult.disease.name;
         const advisoryResult = await this.nutritionService.getAdvisory(
           diseaseName,

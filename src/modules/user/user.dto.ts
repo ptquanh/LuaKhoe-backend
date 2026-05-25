@@ -1,4 +1,4 @@
-import { IsEmail, IsJSON, IsOptional, IsString } from 'class-validator';
+import { IsEmail, IsOptional, IsString } from 'class-validator';
 
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
@@ -34,11 +34,4 @@ export class UpdateUserProfileDTO {
   @IsOptional()
   @IsString()
   lastName?: string;
-
-  @ApiPropertyOptional({
-    example: { longitude: 106.666667, latitude: 10.833333 },
-  })
-  @IsOptional()
-  @IsJSON()
-  gps?: { longitude: number; latitude: number };
 }

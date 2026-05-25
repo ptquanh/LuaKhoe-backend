@@ -27,7 +27,7 @@ export class AiModel extends AuditWithTimezone {
   @Column({ name: 'is_active', type: 'boolean', default: false })
   isActive: boolean;
 
-  @ManyToOne(() => User)
+  @ManyToOne(() => User, { onDelete: 'SET NULL' })
   @JoinColumn({ name: 'uploaded_by' })
   uploadedBy: User;
 

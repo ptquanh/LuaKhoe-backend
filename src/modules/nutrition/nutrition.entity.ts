@@ -1,12 +1,9 @@
-import {
-  Column,
-  CreateDateColumn,
-  Entity,
-  PrimaryGeneratedColumn,
-} from 'typeorm';
+import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+
+import { AuditWithTimezone } from '@shared/common/audit.entity';
 
 @Entity('nutritions')
-export class Nutritions {
+export class Nutritions extends AuditWithTimezone {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -26,12 +23,13 @@ export class Nutritions {
    * This column is created via migration/raw SQL:
    *   ALTER TABLE nutritions ADD COLUMN embedding VECTOR(3072);
    */
-  @Column({ type: 'float', array: true, nullable: true })
+  @Column({
+    type: 'float4',
+    array: true,
+    nullable: true,
+  })
   embedding: number[];
 
   @Column({ name: 'chunk_metadata', type: 'jsonb', nullable: true })
   chunkMetadata: Record<string, any>;
-
-  @CreateDateColumn({ name: 'created_at', type: 'timestamp with time zone' })
-  createdAt: Date;
 }

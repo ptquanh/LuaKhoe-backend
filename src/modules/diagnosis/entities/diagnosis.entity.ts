@@ -1,7 +1,7 @@
 import {
   Column,
-  CreateDateColumn,
   Entity,
+  Index,
   JoinColumn,
   ManyToOne,
   OneToMany,
@@ -12,17 +12,21 @@ import { AiModel } from '@modules/ai-model/ai-model.entity';
 import { Feedback } from '@modules/feedback/entities/feedback.entity';
 import { User } from '@modules/user/entities/user.entity';
 
+import { AuditWithTimezone } from '@shared/common/audit.entity';
+import { WeatherData } from '@shared/interfaces';
+
 import { DiagnosisResult } from './diagnosis-result.entity';
 
 @Entity('diagnoses')
-export class Diagnosis {
+export class Diagnosis extends AuditWithTimezone {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => User)
+  @ManyToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
   user: User;
 
+  @Index()
   @Column({ name: 'user_id', type: 'uuid' })
   userId: string;
 
@@ -37,39 +41,31 @@ export class Diagnosis {
   })
   resultImageUrl: string;
 
-  @Column({
-    name: 'gps_lat',
-    type: 'decimal',
-    precision: 10,
-    scale: 8,
-    nullable: true,
-  })
+  @Column({ name: 'gps_lat', type: 'float', nullable: true })
   gpsLat: number;
 
-  @Column({
-    name: 'gps_lng',
-    type: 'decimal',
-    precision: 11,
-    scale: 8,
-    nullable: true,
-  })
+  @Column({ name: 'gps_lng', type: 'float', nullable: true })
   gpsLng: number;
 
+  @Column({ type: 'text', nullable: true })
+  province: string;
+
   @Column({ name: 'weather_data', type: 'jsonb', nullable: true })
-  weatherData: Record<string, any>;
+  weatherData: WeatherData;
 
   @Column({ name: 'env_description', type: 'text', nullable: true })
   envDescription: string;
 
-  @ManyToOne(() => AiModel)
+  @Column({ name: 'field_params', type: 'jsonb', nullable: true })
+  fieldParams: any;
+
+  @ManyToOne(() => AiModel, { onDelete: 'SET NULL' })
   @JoinColumn({ name: 'model_version_id' })
-  modelVersion: AiModel;
+  aiModel: AiModel;
 
-  @Column({ name: 'model_version_id', type: 'uuid' })
+  @Index()
+  @Column({ name: 'model_version_id', type: 'uuid', nullable: true })
   modelVersionId: string;
-
-  @CreateDateColumn({ name: 'created_at', type: 'timestamp with time zone' })
-  createdAt: Date;
 
   @OneToMany(() => DiagnosisResult, (result) => result.diagnosis, {
     cascade: true,

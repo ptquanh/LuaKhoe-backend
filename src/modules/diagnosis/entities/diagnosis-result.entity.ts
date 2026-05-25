@@ -1,6 +1,7 @@
 import {
   Column,
   Entity,
+  Index,
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
@@ -8,10 +9,13 @@ import {
 
 import { Disease } from '@modules/disease/disease.entity';
 
+import { AuditWithTimezone } from '@shared/common/audit.entity';
+import { AdvisoryData } from '@shared/interfaces';
+
 import { Diagnosis } from './diagnosis.entity';
 
 @Entity('diagnosis_results')
-export class DiagnosisResult {
+export class DiagnosisResult extends AuditWithTimezone {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -21,13 +25,15 @@ export class DiagnosisResult {
   @JoinColumn({ name: 'diagnosis_id' })
   diagnosis: Diagnosis;
 
+  @Index()
   @Column({ name: 'diagnosis_id', type: 'uuid' })
   diagnosisId: string;
 
-  @ManyToOne(() => Disease)
+  @ManyToOne(() => Disease, { onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'disease_id' })
   disease: Disease;
 
+  @Index()
   @Column({ name: 'disease_id', type: 'uuid' })
   diseaseId: string;
 
@@ -39,4 +45,7 @@ export class DiagnosisResult {
 
   @Column({ type: 'varchar', length: 20, nullable: true })
   color: string;
+
+  @Column({ type: 'jsonb', nullable: true })
+  advisory: AdvisoryData;
 }

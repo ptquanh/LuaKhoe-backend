@@ -4,8 +4,11 @@ import { Repository } from 'typeorm';
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 
+import { DiagnosisService } from '@modules/diagnosis/services/diagnosis.service';
+
 import { FEEDBACK_STATUS } from '@shared/constants';
 import {
+  generateForbiddenResult,
   generateNotFoundResult,
   generateSuccessResult,
 } from '@shared/helpers/operation-result.helper';
@@ -21,6 +24,7 @@ export class FeedbackService extends BaseCRUDService<Feedback> {
   constructor(
     @InjectRepository(Feedback)
     feedbackRepo: Repository<Feedback>,
+    private readonly diagnosisService: DiagnosisService,
   ) {
     super(feedbackRepo);
   }
@@ -30,6 +34,19 @@ export class FeedbackService extends BaseCRUDService<Feedback> {
     dto: CreateFeedbackDto,
   ): Promise<HttpResponse<Feedback>> {
     this.logger.log(`Creating feedback for user ${userId}`);
+
+    // Validate diagnosis ownership
+    const diagnosis = await this.diagnosisService.findOne({
+      id: dto.diagnosisId,
+    });
+    if (!diagnosis) {
+      return generateNotFoundResult(`Diagnosis ${dto.diagnosisId} not found`);
+    }
+    if (diagnosis.userId !== userId) {
+      return generateForbiddenResult(
+        'Only diagnosis owner can submit feedback',
+      );
+    }
 
     const actualDiseases = (dto.actualDiseaseIds || []).map((diseaseId) => ({
       diseaseId,

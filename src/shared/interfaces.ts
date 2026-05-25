@@ -69,3 +69,25 @@ export interface UserAuthSocialProfile {
   refreshToken?: string;
   referrerCode?: string;
 }
+
+export interface AdvisoryData {
+  summary: string;
+  disease_name: string;
+  severity_assessment: string;
+  immediate_actions: string[];
+  treatment_protocol: {
+    biological: string;
+    chemical: string;
+    cultural: string;
+  };
+  npk_adjustment: string;
+  prevention_measures: string[];
+}
+
+export interface WeatherData {
+  temperature: number; // °C
+  humidity: number; // %
+  rainfall: string; // "none" | "light" | "heavy"
+  wind: string; // "calm" | "moderate" | "strong"
+  source: string; // "api" | "default"
+}

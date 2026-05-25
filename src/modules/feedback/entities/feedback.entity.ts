@@ -1,7 +1,7 @@
 import {
   Column,
-  CreateDateColumn,
   Entity,
+  Index,
   JoinColumn,
   ManyToOne,
   OneToMany,
@@ -11,36 +11,42 @@ import {
 import { Diagnosis } from '@modules/diagnosis/entities/diagnosis.entity';
 import { User } from '@modules/user/entities/user.entity';
 
+import { AuditWithTimezone } from '@shared/common/audit.entity';
 import { FEEDBACK_STATUS } from '@shared/constants';
 
 import { FeedbackActualDisease } from './feedback-actual-disease.entity';
 
 @Entity('feedbacks')
-export class Feedback {
+export class Feedback extends AuditWithTimezone {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => Diagnosis, (diagnosis) => diagnosis.feedbacks)
+  @ManyToOne(() => Diagnosis, (diagnosis) => diagnosis.feedbacks, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'diagnosis_id' })
   diagnosis: Diagnosis;
 
+  @Index()
   @Column({ name: 'diagnosis_id', type: 'uuid' })
   diagnosisId: string;
 
-  @ManyToOne(() => User)
+  @ManyToOne(() => User, { onDelete: 'SET NULL' })
   @JoinColumn({ name: 'user_id' })
   user: User;
 
+  @Index()
   @Column({ name: 'user_id', type: 'uuid' })
   userId: string;
 
   @Column({ name: 'user_message', type: 'text', nullable: true })
   userMessage: string;
 
+  @Index()
   @Column({ type: 'varchar', default: FEEDBACK_STATUS.PENDING })
   status: FEEDBACK_STATUS;
 
-  @ManyToOne(() => User, { nullable: true })
+  @ManyToOne(() => User, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'admin_id' })
   admin: User;
 
@@ -56,9 +62,6 @@ export class Feedback {
     nullable: true,
   })
   processedAt: Date;
-
-  @CreateDateColumn({ name: 'created_at', type: 'timestamp with time zone' })
-  createdAt: Date;
 
   @OneToMany(() => FeedbackActualDisease, (fad) => fad.feedback, {
     cascade: true,
