@@ -581,6 +581,13 @@ export class AuthService {
       return generateNotFoundResult('user not found', ERR_CODE.NOT_FOUND);
     }
 
+    if (foundUser.status === ENTITY_STATUS.INACTIVE) {
+      foundUser.status = ENTITY_STATUS.ACTIVE;
+      await this.userService.updateByID(foundUser.id, {
+        status: ENTITY_STATUS.ACTIVE,
+      });
+    }
+
     const userStatusVerifyResult = this.verifyUserStatus(foundUser);
     if (!userStatusVerifyResult.success) {
       return userStatusVerifyResult;
@@ -604,6 +611,13 @@ export class AuthService {
     userSocialProfile: UserAuthSocialProfile,
   ): Promise<OperationResult> {
     if (foundUser.password) {
+      if (foundUser.status === ENTITY_STATUS.INACTIVE) {
+        foundUser.status = ENTITY_STATUS.ACTIVE;
+        await this.userService.updateByID(foundUser.id, {
+          status: ENTITY_STATUS.ACTIVE,
+        });
+      }
+
       const userStatusVerifyResult = this.verifyUserStatus(foundUser);
       if (!userStatusVerifyResult.success) {
         return userStatusVerifyResult;
@@ -645,6 +659,7 @@ export class AuthService {
       email: user.email,
       username: user.email,
       password: null,
+      status: ENTITY_STATUS.ACTIVE,
     });
 
     await this.userSocialAccountService.create({

@@ -8,11 +8,13 @@ import {
 
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
+import { PaginatedByKeywordDTO } from '@shared/common/pagination.dto';
 import { ENTITY_STATUS } from '@shared/constants';
 import {
   OnlyTextAndNumbers,
   TrimAndLowercase,
 } from '@shared/decorators/sanitize-input.decorator';
+import { ROLE } from '@shared/enums';
 
 export class VerifyUniquenessUserDTO {
   @IsOptional()
@@ -67,4 +69,16 @@ export class UpdateUserStatusDTO {
   @IsOptional()
   @IsString()
   reason?: string;
+}
+
+export class GetUsersAdminDTO extends PaginatedByKeywordDTO {
+  @ApiPropertyOptional({ enum: ROLE })
+  @IsOptional()
+  @IsEnum(ROLE)
+  role?: ROLE;
+
+  @ApiPropertyOptional({ enum: ENTITY_STATUS })
+  @IsOptional()
+  @IsEnum(ENTITY_STATUS)
+  status?: ENTITY_STATUS;
 }

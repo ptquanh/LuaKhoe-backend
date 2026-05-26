@@ -7,7 +7,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 
 import { Diagnosis } from '@modules/diagnosis/entities/diagnosis.entity';
 
-import { PaginatedByKeywordDTO } from '@shared/common/pagination.dto';
 import { ENTITY_STATUS, ERR_CODE } from '@shared/constants';
 import {
   generateConflictResult,
@@ -17,7 +16,11 @@ import {
 import { BaseCRUDService } from '@shared/services/base-crud.service';
 
 import { User } from '../entities/user.entity';
-import { UpdateUserStatusDTO, VerifyUniquenessUserDTO } from '../user.dto';
+import {
+  GetUsersAdminDTO,
+  UpdateUserStatusDTO,
+  VerifyUniquenessUserDTO,
+} from '../user.dto';
 
 @Injectable()
 export class UserService extends BaseCRUDService<User> {
@@ -70,21 +73,29 @@ export class UserService extends BaseCRUDService<User> {
     return user;
   }
 
-  public async getUsersForAdmin(
-    dto: PaginatedByKeywordDTO,
-  ): Promise<HttpResponse> {
+  public async getUsersForAdmin(dto: GetUsersAdminDTO): Promise<HttpResponse> {
     const limit = dto.limit ? parseInt(dto.limit as any, 10) : 10;
     const offset = dto.offset ? parseInt(dto.offset as any, 10) : 0;
 
     let whereFilter: any = {};
     if (dto.keyword) {
       const keyword = `%${dto.keyword}%`;
-      whereFilter = [
+      const baseConditions = [
         { username: ILike(keyword) },
         { email: ILike(keyword) },
         { profile: { firstName: ILike(keyword) } },
         { profile: { lastName: ILike(keyword) } },
       ];
+
+      whereFilter = baseConditions.map((cond) => {
+        const result: any = { ...cond };
+        if (dto.role) result.role = dto.role;
+        if (dto.status) result.status = dto.status;
+        return result;
+      });
+    } else {
+      if (dto.role) whereFilter.role = dto.role;
+      if (dto.status) whereFilter.status = dto.status;
     }
 
     const [users, total] = await this.repo.findAndCount({
@@ -185,5 +196,18 @@ export class UserService extends BaseCRUDService<User> {
 
     const saved = await this.repo.save(user);
     return generateSuccessResult(saved);
+  }
+
+  public async deleteUserForAdmin(id: string): Promise<HttpResponse> {
+    const user = await this.findByID(id);
+    if (!user) {
+      return generateNotFoundResult(`User ${id} not found`);
+    }
+
+    // Hard delete user from the repository using the inherited base method
+    // (This triggers DB cascading ON DELETE CASCADE deletes for other related tables)
+    await this.hardDeleteByID(id);
+
+    return generateSuccessResult({ id, message: 'User deleted successfully' });
   }
 }

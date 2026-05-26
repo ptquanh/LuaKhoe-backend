@@ -199,5 +199,34 @@ export class SocialAccountDTO {
   })
   @IsOptional()
   @IsString()
-  code: string;
+  code?: string;
+
+  // Google OAuth callback query parameters (whitelisted to bypass strict DTO verification)
+  @IsOptional()
+  @IsString()
+  iss?: string;
+
+  @IsOptional()
+  @IsString()
+  scope?: string;
+
+  @IsOptional()
+  @IsString()
+  authuser?: string;
+
+  @IsOptional()
+  @IsString()
+  prompt?: string;
+
+  @IsOptional()
+  @IsString()
+  state?: string;
+
+  @IsOptional()
+  @IsString()
+  hd?: string;
+
+  @IsOptional()
+  @IsString()
+  session_state?: string;
 }

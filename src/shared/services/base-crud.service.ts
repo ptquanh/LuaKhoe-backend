@@ -138,6 +138,10 @@ export abstract class BaseCRUDService<T extends ObjectLiteral> {
     await this.model.softDelete({ id: entityID } as any);
   }
 
+  public async hardDeleteByID(entityID: number | string): Promise<void> {
+    await this.model.delete({ id: entityID } as any);
+  }
+
   public async findAll(
     filter?: FindOptionsWhere<T> | FindOptionsWhere<T>[],
     options: FindOptions<T> = { withDeleted: false },
