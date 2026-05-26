@@ -10,6 +10,7 @@ import {
 
 import { AiModel } from '@modules/ai-model/ai-model.entity';
 import { Feedback } from '@modules/feedback/entities/feedback.entity';
+import { UserField } from '@modules/user/entities/user-field.entity';
 import { User } from '@modules/user/entities/user.entity';
 
 import { AuditWithTimezone } from '@shared/common/audit.entity';
@@ -58,6 +59,13 @@ export class Diagnosis extends AuditWithTimezone {
 
   @Column({ name: 'field_params', type: 'jsonb', nullable: true })
   fieldParams: any;
+
+  @Column({ name: 'field_id', type: 'uuid', nullable: true })
+  fieldId: string;
+
+  @ManyToOne(() => UserField, { onDelete: 'SET NULL', nullable: true })
+  @JoinColumn({ name: 'field_id' })
+  field: UserField;
 
   @ManyToOne(() => AiModel, { onDelete: 'SET NULL' })
   @JoinColumn({ name: 'model_version_id' })

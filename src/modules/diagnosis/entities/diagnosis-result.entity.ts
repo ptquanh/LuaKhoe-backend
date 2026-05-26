@@ -49,6 +49,12 @@ export class DiagnosisResult extends AuditWithTimezone {
   @Column({ type: 'jsonb', nullable: true })
   advisory: AdvisoryData;
 
-  @Column({ name: 'affected_area_ratio', type: 'decimal', precision: 5, scale: 4, nullable: true })
+  @Column({
+    name: 'affected_area_ratio',
+    type: 'decimal',
+    precision: 5,
+    scale: 4,
+    nullable: true,
+  })
   affectedAreaRatio: number;
 }

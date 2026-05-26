@@ -17,7 +17,10 @@ import { Nutritions } from './nutrition.entity';
 // Define the state for our RAG graph
 const GraphState = Annotation.Root({
   disease: Annotation<string>(),
-  diseases: Annotation<{ name: string; confidence: number; affectedAreaRatio: number }[]>(),
+  diseases:
+    Annotation<
+      { name: string; confidence: number; affectedAreaRatio: number }[]
+    >(),
   query: Annotation<string>(),
   context: Annotation<string>(),
   documents: Annotation<any[]>(),
@@ -79,7 +82,11 @@ export class NutritionService
 
   private async retrieve(state: typeof GraphState.State) {
     const documents: any[] = [];
-    const diseaseList = state.diseases || (state.disease ? [{ name: state.disease, confidence: 1.0, affectedAreaRatio: 0.0 }] : []);
+    const diseaseList =
+      state.diseases ||
+      (state.disease
+        ? [{ name: state.disease, confidence: 1.0, affectedAreaRatio: 0.0 }]
+        : []);
 
     for (const d of diseaseList) {
       const query = `${d.name} ${state.context || ''}`;
@@ -94,12 +101,16 @@ export class NutritionService
         );
         documents.push(...docs);
       } catch (err) {
-        this.logger.error(`Embedding or retrieval failed for ${d.name}: ${err.message}`);
+        this.logger.error(
+          `Embedding or retrieval failed for ${d.name}: ${err.message}`,
+        );
       }
     }
 
     // Deduplicate documents by ID to avoid sending duplicate context to LLM
-    const uniqueDocs = Array.from(new Map(documents.map((doc) => [doc.id, doc])).values());
+    const uniqueDocs = Array.from(
+      new Map(documents.map((doc) => [doc.id, doc])).values(),
+    );
 
     return { documents: uniqueDocs };
   }
@@ -109,9 +120,16 @@ export class NutritionService
       .map((doc) => `[Source: ${doc.source}]\n${doc.content}`)
       .join('\n\n');
 
-    const diseaseList = state.diseases || (state.disease ? [{ name: state.disease, confidence: 1.0, affectedAreaRatio: 0.0 }] : []);
+    const diseaseList =
+      state.diseases ||
+      (state.disease
+        ? [{ name: state.disease, confidence: 1.0, affectedAreaRatio: 0.0 }]
+        : []);
     const diseasesStr = diseaseList
-      .map((d) => `- Bệnh: ${d.name} (Độ tin cậy: ${(d.confidence * 100).toFixed(1)}%, Tỷ lệ diện tích nhiễm bệnh: ${(d.affectedAreaRatio * 100).toFixed(1)}%)`)
+      .map(
+        (d) =>
+          `- Bệnh: ${d.name} (Độ tin cậy: ${(d.confidence * 100).toFixed(1)}%, Tỷ lệ diện tích nhiễm bệnh: ${(d.affectedAreaRatio * 100).toFixed(1)}%)`,
+      )
       .join('\n');
 
     const prompt = `Bạn là một chuyên gia nông nghiệp của hệ thống LúaKhỏe. 
@@ -234,7 +252,9 @@ Yêu cầu BẮT BUỘC:
    * RAG Advisory generating structured JSON.
    */
   async getAdvisory(
-    diseases: string | { name: string; confidence: number; affectedAreaRatio: number }[],
+    diseases:
+      | string
+      | { name: string; confidence: number; affectedAreaRatio: number }[],
     context?: string,
   ): Promise<HttpResponse<any>> {
     const isArray = Array.isArray(diseases);

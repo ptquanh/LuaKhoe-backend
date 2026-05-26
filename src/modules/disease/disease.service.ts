@@ -1,9 +1,10 @@
-import { HttpResponse } from 'mvc-common-toolkit';
+import { HttpResponse, OperationResult } from 'mvc-common-toolkit';
 import { Repository } from 'typeorm';
 
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 
+import { PaginatedByKeywordDTO } from '@shared/common/pagination.dto';
 import { DISEASE_STATUS } from '@shared/constants';
 import {
   generateNotFoundResult,
@@ -70,5 +71,16 @@ export class DiseaseService extends BaseCRUDService<Disease> {
 
     const savedDisease = await this.updateByID(id, disease);
     return generateSuccessResult(savedDisease);
+  }
+
+  async findDiseasesForAdmin(
+    dto: PaginatedByKeywordDTO,
+  ): Promise<OperationResult> {
+    const result = await this.paginateByKeyword(
+      dto,
+      ['name', 'scientificName'],
+      dto.keyword,
+    );
+    return generateSuccessResult(result);
   }
 }

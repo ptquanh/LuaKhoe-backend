@@ -13,14 +13,15 @@ import { AiModelService } from '@modules/ai-model/ai-model.service';
 import { CloudinaryService } from '@modules/cloudinary/cloudinary.service';
 import { DiseaseService } from '@modules/disease/disease.service';
 import { NutritionService } from '@modules/nutrition/nutrition.service';
+import { UserFieldService } from '@modules/user/services/user-field.service';
 
 import { getVietnameseDiseaseName } from '@shared/helpers/disease.helper';
 import { reverseGeocode } from '@shared/helpers/geocoding.helper';
-import { fetchWeather } from '@shared/helpers/weather.helper';
 import {
   generateNotFoundResult,
   generateSuccessResult,
 } from '@shared/helpers/operation-result.helper';
+import { fetchWeather } from '@shared/helpers/weather.helper';
 import { BaseCRUDService } from '@shared/services/base-crud.service';
 
 import { CreateDiagnosisDto, GetHistoryDto } from '../diagnosis.dto';
@@ -41,6 +42,7 @@ export class DiagnosisService extends BaseCRUDService<Diagnosis> {
     private readonly diseaseService: DiseaseService,
     private readonly nutritionService: NutritionService,
     private readonly httpService: HttpService,
+    private readonly userFieldService: UserFieldService,
     @Inject(aiServiceConfig.KEY)
     private readonly aiConfig: ConfigType<typeof aiServiceConfig>,
   ) {
@@ -63,6 +65,15 @@ export class DiagnosisService extends BaseCRUDService<Diagnosis> {
     if (!activeModelResult.success) return activeModelResult;
     const activeModel = activeModelResult.data;
 
+    // Resolve coordinates from UserField if fieldId is provided
+    if (dto.fieldId) {
+      const field = await this.userFieldService.findOne({ id: dto.fieldId, userId });
+      if (field) {
+        dto.gpsLat = field.gpsLat ? Number(field.gpsLat) : undefined;
+        dto.gpsLng = field.gpsLng ? Number(field.gpsLng) : undefined;
+      }
+    }
+
     // 2.5 Perform Reverse Geocoding on Backend
     let geocodedProvince = null;
     if (dto.gpsLat !== undefined && dto.gpsLng !== undefined) {
@@ -74,7 +85,9 @@ export class DiagnosisService extends BaseCRUDService<Diagnosis> {
     if (dto.gpsLat !== undefined && dto.gpsLng !== undefined) {
       weatherData = await fetchWeather(dto.gpsLat, dto.gpsLng);
     } else {
-      this.logger.warn('Coordinates are missing for weather API — using default weather');
+      this.logger.warn(
+        'Coordinates are missing for weather API — using default weather',
+      );
       weatherData = {
         humidity: 75.0,
         temperature: 28.0,
@@ -118,6 +131,7 @@ export class DiagnosisService extends BaseCRUDService<Diagnosis> {
       fieldParams: dto.fieldParams,
       modelVersionId: activeModel.id,
       weatherData: env_adjustment?.weather || null,
+      fieldId: dto.fieldId || null,
     });
 
     // 6. Save Individual Results
@@ -157,7 +171,8 @@ export class DiagnosisService extends BaseCRUDService<Diagnosis> {
       // Sort results by affectedAreaRatio descending, then confidence descending
       const sortedResults = [...diagnosisResults].sort(
         (a, b) =>
-          (Number(b.affectedAreaRatio) || 0) - (Number(a.affectedAreaRatio) || 0) ||
+          (Number(b.affectedAreaRatio) || 0) -
+            (Number(a.affectedAreaRatio) || 0) ||
           Number(b.confidence) - Number(a.confidence),
       );
       const topResult = sortedResults[0];
@@ -367,7 +382,8 @@ export class DiagnosisService extends BaseCRUDService<Diagnosis> {
     if (results.length > 0) {
       const sortedResults = [...results].sort(
         (a, b) =>
-          (Number(b.affectedAreaRatio) || 0) - (Number(a.affectedAreaRatio) || 0) ||
+          (Number(b.affectedAreaRatio) || 0) -
+            (Number(a.affectedAreaRatio) || 0) ||
           Number(b.confidence) - Number(a.confidence),
       );
       const topResult = sortedResults[0];

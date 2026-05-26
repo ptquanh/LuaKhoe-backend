@@ -25,4 +25,13 @@ export class Disease extends AuditWithTimezone {
 
   @Column({ type: 'varchar', default: DISEASE_STATUS.VISIBLE })
   status: DISEASE_STATUS;
+
+  @Column({ type: 'varchar', length: 50, default: 'medium' })
+  severity: string;
+
+  @Column({ type: 'text', nullable: true })
+  treatment: string;
+
+  @Column({ name: 'image_url', type: 'varchar', length: 512, nullable: true })
+  imageUrl: string;
 }

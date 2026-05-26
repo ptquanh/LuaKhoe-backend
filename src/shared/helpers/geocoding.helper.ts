@@ -3,7 +3,10 @@ import axios from 'axios';
 const locationCache = new Map<string, { address: string; timestamp: number }>();
 const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 
-export async function reverseGeocode(lat: number, lng: number): Promise<string> {
+export async function reverseGeocode(
+  lat: number,
+  lng: number,
+): Promise<string> {
   if (lat === undefined || lng === undefined || lat === null || lng === null) {
     return 'Không xác định';
   }
@@ -28,11 +31,16 @@ export async function reverseGeocode(lat: number, lng: number): Promise<string> 
       const displayName = response.data.display_name;
       if (displayName) {
         const rawParts = displayName.split(',').map((p: string) => p.trim());
-        
+
         // Filter out country and postcode fields to keep only local administration names
         const isCountry = (s: string) => {
           const normalized = s.toLowerCase();
-          return normalized === 'việt nam' || normalized === 'vietnam' || normalized === 'viet nam' || normalized === 'vn';
+          return (
+            normalized === 'việt nam' ||
+            normalized === 'vietnam' ||
+            normalized === 'viet nam' ||
+            normalized === 'vn'
+          );
         };
         const isPostcode = (s: string) => /^\d+$/.test(s);
 
@@ -50,7 +58,10 @@ export async function reverseGeocode(lat: number, lng: number): Promise<string> 
         const addressStr = top3.reverse().join(', ');
 
         if (addressStr) {
-          locationCache.set(key, { address: addressStr, timestamp: Date.now() });
+          locationCache.set(key, {
+            address: addressStr,
+            timestamp: Date.now(),
+          });
           return addressStr;
         }
       }

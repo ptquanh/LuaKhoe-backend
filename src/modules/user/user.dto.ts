@@ -1,7 +1,14 @@
-import { IsEmail, IsOptional, IsString } from 'class-validator';
+import {
+  IsEmail,
+  IsEnum,
+  IsNumber,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 
-import { ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
+import { ENTITY_STATUS } from '@shared/constants';
 import {
   OnlyTextAndNumbers,
   TrimAndLowercase,
@@ -34,4 +41,30 @@ export class UpdateUserProfileDTO {
   @IsOptional()
   @IsString()
   lastName?: string;
+
+  @ApiPropertyOptional({ example: 10.456789 })
+  @IsOptional()
+  @IsNumber()
+  defaultGpsLat?: number;
+
+  @ApiPropertyOptional({ example: 105.123456 })
+  @IsOptional()
+  @IsNumber()
+  defaultGpsLng?: number;
+
+  @ApiPropertyOptional({ example: 'An Giang' })
+  @IsOptional()
+  @IsString()
+  defaultProvince?: string;
+}
+
+export class UpdateUserStatusDTO {
+  @ApiProperty({ enum: ENTITY_STATUS, example: ENTITY_STATUS.SUSPENDED })
+  @IsEnum(ENTITY_STATUS)
+  status: ENTITY_STATUS;
+
+  @ApiPropertyOptional({ example: 'Vi phạm điều khoản sử dụng' })
+  @IsOptional()
+  @IsString()
+  reason?: string;
 }

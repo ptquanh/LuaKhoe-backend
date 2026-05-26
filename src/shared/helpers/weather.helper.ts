@@ -1,4 +1,5 @@
 import axios from 'axios';
+
 import { Logger } from '@nestjs/common';
 
 const logger = new Logger('WeatherHelper');
@@ -13,7 +14,10 @@ export interface WeatherInfo {
   source: 'api' | 'default';
 }
 
-export async function fetchWeather(lat: number, lng: number): Promise<WeatherInfo> {
+export async function fetchWeather(
+  lat: number,
+  lng: number,
+): Promise<WeatherInfo> {
   const fallback: WeatherInfo = {
     humidity: 75.0,
     temperature: 28.0,
@@ -23,7 +27,9 @@ export async function fetchWeather(lat: number, lng: number): Promise<WeatherInf
   };
 
   if (lat === undefined || lng === undefined || lat === null || lng === null) {
-    logger.warn('Coordinates are missing for weather API — using default weather');
+    logger.warn(
+      'Coordinates are missing for weather API — using default weather',
+    );
     return fallback;
   }
 
@@ -81,10 +87,14 @@ export async function fetchWeather(lat: number, lng: number): Promise<WeatherInf
       weatherCache.set(key, { data: weatherData, timestamp: Date.now() });
       return weatherData;
     } else {
-      logger.warn(`Open-Meteo API returned non-200 status (${response.status}) — fallback to default weather`);
+      logger.warn(
+        `Open-Meteo API returned non-200 status (${response.status}) — fallback to default weather`,
+      );
     }
   } catch (error: any) {
-    logger.warn(`Open-Meteo API call failed: ${error.message} — fallback to default weather`);
+    logger.warn(
+      `Open-Meteo API call failed: ${error.message} — fallback to default weather`,
+    );
   }
 
   return fallback;

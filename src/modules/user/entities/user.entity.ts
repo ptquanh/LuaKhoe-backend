@@ -11,6 +11,7 @@ import { AuditWithTimezone } from '@shared/common/audit.entity';
 import { ENTITY_STATUS } from '@shared/constants';
 import { ROLE } from '@shared/enums';
 
+import { UserField } from './user-field.entity';
 import { UserProfile } from './user-profile.entity';
 import { UserSocialAccount } from './user-social-account.entity';
 
@@ -47,4 +48,7 @@ export class User extends AuditWithTimezone {
 
   @OneToMany(() => UserSocialAccount, (social) => social.user)
   socialAccounts: UserSocialAccount[];
+
+  @OneToMany(() => UserField, (field) => field.user, { cascade: true })
+  fields: UserField[];
 }
