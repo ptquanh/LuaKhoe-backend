@@ -30,7 +30,8 @@ export class UserFieldController {
   @Get()
   @ApiOperation({
     summary: 'Get all user fields',
-    description: 'Retrieve all field locations registered by the authenticated farmer',
+    description:
+      'Retrieve all field locations registered by the authenticated farmer',
   })
   async getUserFields(
     @RequestUser() user: UserAuthProfile,
@@ -41,7 +42,8 @@ export class UserFieldController {
   @Post()
   @ApiOperation({
     summary: 'Create a user field',
-    description: 'Register a new field location with custom name, address, and coordinates',
+    description:
+      'Register a new field location with custom name, address, and coordinates',
   })
   @ApplyRateLimiting(5)
   async createUserField(
@@ -54,7 +56,8 @@ export class UserFieldController {
   @Put(':id')
   @ApiOperation({
     summary: 'Update a user field',
-    description: 'Update custom name, address, coordinates, or default status of a field',
+    description:
+      'Update custom name, address, coordinates, or default status of a field',
   })
   @ApplyRateLimiting(5)
   async updateUserField(

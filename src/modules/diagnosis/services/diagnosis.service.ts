@@ -67,7 +67,10 @@ export class DiagnosisService extends BaseCRUDService<Diagnosis> {
 
     // Resolve coordinates from UserField if fieldId is provided
     if (dto.fieldId) {
-      const field = await this.userFieldService.findOne({ id: dto.fieldId, userId });
+      const field = await this.userFieldService.findOne({
+        id: dto.fieldId,
+        userId,
+      });
       if (field) {
         dto.gpsLat = field.gpsLat ? Number(field.gpsLat) : undefined;
         dto.gpsLng = field.gpsLng ? Number(field.gpsLng) : undefined;

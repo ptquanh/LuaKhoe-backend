@@ -9,8 +9,8 @@ import { UserFieldService } from './services/user-field.service';
 import { UserProfileService } from './services/user-profile.service';
 import { UserSocialAccountService } from './services/user-social-account.service';
 import { UserService } from './services/user.service';
-import { UserController } from './user.controller';
 import { UserFieldController } from './user-field.controller';
+import { UserController } from './user.controller';
 
 @Module({
   imports: [

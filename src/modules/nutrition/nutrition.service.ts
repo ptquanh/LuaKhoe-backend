@@ -4,7 +4,12 @@ import { Annotation, END, START, StateGraph } from '@langchain/langgraph';
 import { HttpResponse } from 'mvc-common-toolkit';
 import { Repository } from 'typeorm';
 
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  OnModuleInit,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 
@@ -282,6 +287,112 @@ Yêu cầu BẮT BUỘC:
     });
   }
 
+  cleanPDFText(rawText: string, filename: string = ''): string {
+    let text = rawText;
+
+    // 0. Xóa động Tên file tải lên (Escape các ký tự đặc biệt của Regex)
+    if (filename) {
+      const safeFilename = filename.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const filenameRegex = new RegExp(safeFilename, 'gi');
+      text = text.replace(filenameRegex, '');
+    }
+
+    // 1. Xóa các URL và đường dẫn web
+    text = text.replace(/www\.knowledgebank\.irri\.org[^\s]+/gi, '');
+
+    // 2. Xóa các header/footer thời gian (VD: 14:53 26/5/26 ...)
+    text = text.replace(
+      /\d{2}:\d{2}\s\d{1,2}\/\d{1,2}\/\d{2}.*?(Knowledge Bank|pdf)/gi,
+      '',
+    );
+
+    // 3. Xóa các artifact số trang AN TOÀN
+    // Bắt cụm "-- 1 of 3 --" và quét sạch mọi thứ đi kèm phía sau nó trên cùng dòng (như PDF, dấu gạch...)
+    text = text.replace(/--\s*\d+\s*of\s*\d+\s*--.*/gi, '');
+    // Chỉ xóa "1/3" nếu nó nằm độc lập trên 1 dòng
+    text = text.replace(/(?:\n|^)[^\S\r\n]*\d+\/\d+[^\S\r\n]*(?=\n|$)/g, '');
+
+    // 4. Xóa các text từ UI của trình duyệt/PDF viewer
+    text = text.replace(/Thu gọn|Xem thêm/g, '');
+
+    // 5. Gom các đoạn văn bị đứt gãy (Xóa xuống dòng đơn, giữ lại xuống dòng kép)
+    text = text.replace(/([^\n])\n([^\n])/g, '$1 $2');
+
+    // 6. Xóa các khoảng trắng thừa nhưng bảo tồn dòng trống kép (\n\n)
+    // Thay thế 2 hoặc nhiều khoảng trắng ngang bằng một khoảng trắng đơn
+    text = text.replace(/[^\S\r\n]{2,}/g, ' ');
+    // Loại bỏ khoảng trắng ngang ở rìa các dòng
+    text = text.replace(/[^\S\r\n]*\n[^\S\r\n]*/g, '\n');
+    // Giới hạn tối đa 2 dòng trống liên tiếp
+    text = text.replace(/\n{3,}/g, '\n\n');
+
+    return text.trim();
+  }
+
+  splitMarkdown(text: string): { content: string; metadata: any }[] {
+    const lines = text.split('\n');
+    const chunks: { content: string; metadata: any }[] = [];
+    let currentChunkLines: string[] = [];
+    let currentHeaders: string[] = [];
+
+    for (const line of lines) {
+      const headerMatch = line.match(/^(#{1,6})\s+(.*)$/);
+      if (headerMatch) {
+        if (currentChunkLines.length > 0) {
+          chunks.push({
+            content: currentChunkLines.join('\n').trim(),
+            metadata: { headers: [...currentHeaders] },
+          });
+          currentChunkLines = [];
+        }
+        const level = headerMatch[1].length;
+        const title = headerMatch[2].trim();
+        currentHeaders = currentHeaders.slice(0, level - 1);
+        currentHeaders[level - 1] = title;
+      }
+      currentChunkLines.push(line);
+    }
+
+    if (currentChunkLines.length > 0) {
+      chunks.push({
+        content: currentChunkLines.join('\n').trim(),
+        metadata: { headers: [...currentHeaders] },
+      });
+    }
+
+    return chunks;
+  }
+
+  chunkText(
+    text: string,
+    source: string = '',
+  ): { content: string; metadata: any }[] {
+    const cleanedText = this.cleanPDFText(text, source);
+    let chunks = this.splitMarkdown(cleanedText);
+
+    // If no markdown headers were found or it was a single big chunk, fall back to paragraph split
+    if (chunks.length <= 1) {
+      const paragraphs = cleanedText.split(/\n\s*\n/);
+      chunks = paragraphs
+        .map((p) => p.trim())
+        .filter((p) => p.length > 0)
+        .map((p) => ({
+          content: p,
+          metadata: {},
+        }));
+    }
+
+    return chunks.map((chunk, idx) => ({
+      content: chunk.content,
+      metadata: {
+        ...chunk.metadata,
+        source: source || 'unknown',
+        chunkIndex: idx,
+        totalChunks: chunks.length,
+      },
+    }));
+  }
+
   async seedKnowledge(
     documents: { content: string; source?: string; metadata?: any }[],
   ): Promise<HttpResponse<any>> {
@@ -295,13 +406,76 @@ Yêu cầu BẮT BUỘC:
   }
 
   async uploadDocument(content: string, source?: string, metadata?: any) {
-    const embedding = await this.embeddings.embedQuery(content);
+    const chunks = this.chunkText(content, source);
+    const savedChunks: Nutritions[] = [];
 
-    return this.create({
-      content,
-      source,
-      chunkMetadata: metadata,
-      embedding,
+    for (const chunk of chunks) {
+      const mergedMetadata = { ...metadata, ...chunk.metadata };
+      const embedding = await this.embeddings.embedQuery(chunk.content);
+      const saved = await this.create({
+        content: chunk.content,
+        source,
+        chunkMetadata: mergedMetadata,
+        embedding,
+      });
+      savedChunks.push(saved);
+    }
+
+    return savedChunks;
+  }
+
+  async parsePdfBuffer(buffer: Buffer): Promise<string> {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const pdf = require('pdf-parse');
+    if (typeof pdf === 'function') {
+      const parsed = await pdf(buffer);
+      return parsed.text;
+    }
+    if (pdf && typeof pdf.PDFParse === 'function') {
+      const uint8 = new Uint8Array(
+        buffer.buffer,
+        buffer.byteOffset,
+        buffer.byteLength,
+      );
+      const instance = new pdf.PDFParse(uint8);
+      await instance.load();
+      const res = await instance.getText();
+      return typeof res === 'string' ? res : res?.text || '';
+    }
+    if (pdf && typeof pdf.default === 'function') {
+      const parsed = await pdf.default(buffer);
+      return parsed.text;
+    }
+    throw new Error('Unsupported pdf-parse module signature');
+  }
+
+  async uploadDocumentFile(file: Express.Multer.File) {
+    let content = '';
+    const fileType = file.originalname.split('.').pop()?.toUpperCase() || 'TXT';
+
+    if (
+      file.mimetype === 'application/pdf' ||
+      file.originalname.toLowerCase().endsWith('.pdf')
+    ) {
+      try {
+        content = await this.parsePdfBuffer(file.buffer);
+      } catch (err) {
+        this.logger.error(`Failed to parse PDF file: ${err.message}`);
+        throw new BadRequestException(
+          `Failed to parse PDF file: ${err.message}`,
+        );
+      }
+    } else {
+      content = file.buffer.toString('utf-8');
+    }
+
+    if (!content || content.trim().length === 0) {
+      throw new BadRequestException('Document content is empty');
+    }
+
+    return this.uploadDocument(content, file.originalname, {
+      fileSize: `${(file.size / 1024).toFixed(1)} KB`,
+      fileType,
     });
   }
 }

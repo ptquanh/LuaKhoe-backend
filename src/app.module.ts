@@ -16,6 +16,7 @@ import { FeedbackModule } from '@modules/feedback/feedback.module';
 import { GlobalModule } from '@modules/global/global.module';
 import { HealthModule } from '@modules/health/health.module';
 import { NutritionModule } from '@modules/nutrition/nutrition.module';
+import { SystemConfigModule } from '@modules/system-config/system-config.module';
 import { UserModule } from '@modules/user/user.module';
 
 import configs from './configs';
@@ -55,6 +56,7 @@ import configs from './configs';
     DiseaseModule,
     FeedbackModule,
     NutritionModule,
+    SystemConfigModule,
   ],
 })
 export class AppModule {}

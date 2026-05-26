@@ -7,6 +7,7 @@ import {
 } from 'typeorm';
 
 import { AuditWithTimezone } from '@shared/common/audit.entity';
+
 import { User } from './user.entity';
 
 @Entity('user_fields')

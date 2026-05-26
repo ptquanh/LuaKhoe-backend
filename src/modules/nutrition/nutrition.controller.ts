@@ -1,16 +1,26 @@
 import {
+  BadRequestException,
   Body,
   Controller,
+  Delete,
+  Get,
+  Param,
   ParseArrayPipe,
   Post,
+  Query,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 
+import { PaginatedByKeywordDTO } from '@shared/common/pagination.dto';
 import { Roles } from '@shared/decorators/roles.decorator';
 import { ROLE } from '@shared/enums';
 import { AuthGuard } from '@shared/guards/auth.guard';
 import { RolesGuard } from '@shared/guards/roles.guard';
+import { generateSuccessResult } from '@shared/helpers/operation-result.helper';
 
 import { GetAdvisoryDto, SeedNutritionDocDto } from './nutrition.dto';
 import { NutritionService } from './nutrition.service';
@@ -21,6 +31,62 @@ import { NutritionService } from './nutrition.service';
 @UseGuards(AuthGuard)
 export class NutritionController {
   constructor(private readonly nutritionService: NutritionService) {}
+
+  @Get()
+  @Roles(ROLE.ADMIN)
+  @UseGuards(RolesGuard)
+  @ApiOperation({
+    summary: 'Get paginated nutrition knowledge documents (Admin only)',
+  })
+  async getPaginated(@Query() query: PaginatedByKeywordDTO) {
+    const result = await this.nutritionService.paginateByKeyword(
+      query,
+      ['content', 'source'],
+      query.keyword,
+    );
+    return generateSuccessResult(result);
+  }
+
+  @Post()
+  @Roles(ROLE.ADMIN)
+  @UseGuards(RolesGuard)
+  @ApiOperation({
+    summary: 'Create a single nutrition knowledge document (Admin only)',
+  })
+  async createChunk(@Body() dto: SeedNutritionDocDto) {
+    const result = await this.nutritionService.uploadDocument(
+      dto.content,
+      dto.source,
+      dto.metadata || {},
+    );
+    return generateSuccessResult(result);
+  }
+
+  @Post('upload')
+  @Roles(ROLE.ADMIN)
+  @UseGuards(RolesGuard)
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiOperation({
+    summary: 'Upload and parse a document file (PDF or TXT) (Admin only)',
+  })
+  async uploadFile(@UploadedFile() file: Express.Multer.File) {
+    if (!file) {
+      throw new BadRequestException('No file uploaded');
+    }
+    const result = await this.nutritionService.uploadDocumentFile(file);
+    return generateSuccessResult(result);
+  }
+
+  @Delete(':id')
+  @Roles(ROLE.ADMIN)
+  @UseGuards(RolesGuard)
+  @ApiOperation({
+    summary: 'Delete a nutrition knowledge document by ID (Admin only)',
+  })
+  async deleteChunk(@Param('id') id: string) {
+    await this.nutritionService.deleteByID(id);
+    return generateSuccessResult({ message: 'Deleted successfully' });
+  }
 
   @Post('seed')
   @Roles(ROLE.ADMIN)

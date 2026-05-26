@@ -22,6 +22,7 @@ export class Nutritions extends AuditWithTimezone {
    * TypeORM does not natively support VECTOR type.
    * This column is created via migration/raw SQL:
    *   ALTER TABLE nutritions ADD COLUMN embedding VECTOR(3072);
+   *   ALTER TABLE nutritions ALTER COLUMN embedding TYPE VECTOR(3072);
    */
   @Column({
     type: 'float4',
