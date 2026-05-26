@@ -70,15 +70,20 @@ export interface UserAuthSocialProfile {
   referrerCode?: string;
 }
 
+export interface TreatmentStep {
+  disease_name: string;
+  steps: string[];
+}
+
 export interface AdvisoryData {
   summary: string;
   disease_name: string;
   severity_assessment: string;
   immediate_actions: string[];
   treatment_protocol: {
-    biological: string;
-    chemical: string;
-    cultural: string;
+    biological: string | TreatmentStep[] | string[];
+    chemical: string | TreatmentStep[] | string[];
+    cultural: string | string[];
   };
   npk_adjustment: string;
   prevention_measures: string[];

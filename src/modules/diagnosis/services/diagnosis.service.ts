@@ -15,6 +15,8 @@ import { DiseaseService } from '@modules/disease/disease.service';
 import { NutritionService } from '@modules/nutrition/nutrition.service';
 
 import { getVietnameseDiseaseName } from '@shared/helpers/disease.helper';
+import { reverseGeocode } from '@shared/helpers/geocoding.helper';
+import { fetchWeather } from '@shared/helpers/weather.helper';
 import {
   generateNotFoundResult,
   generateSuccessResult,
@@ -61,14 +63,36 @@ export class DiagnosisService extends BaseCRUDService<Diagnosis> {
     if (!activeModelResult.success) return activeModelResult;
     const activeModel = activeModelResult.data;
 
+    // 2.5 Perform Reverse Geocoding on Backend
+    let geocodedProvince = null;
+    if (dto.gpsLat !== undefined && dto.gpsLng !== undefined) {
+      geocodedProvince = await reverseGeocode(dto.gpsLat, dto.gpsLng);
+    }
+
+    // 2.7 Fetch Weather on NestJS (Orchestrator)
+    let weatherData = null;
+    if (dto.gpsLat !== undefined && dto.gpsLng !== undefined) {
+      weatherData = await fetchWeather(dto.gpsLat, dto.gpsLng);
+    } else {
+      this.logger.warn('Coordinates are missing for weather API — using default weather');
+      weatherData = {
+        humidity: 75.0,
+        temperature: 28.0,
+        rainfall: 'none',
+        wind: 'calm',
+        source: 'default',
+      } as any;
+    }
+
     // 3. Call AI Microservice for prediction
     const aiResponse = await firstValueFrom(
       this.httpService.post(`${this.aiConfig.baseUrl}/predict`, {
         image_url: originalImageUrl,
-        province: dto.province,
         gps_lat: dto.gpsLat,
         gps_lng: dto.gpsLng,
+        province: geocodedProvince,
         field_params: dto.fieldParams,
+        weather: weatherData,
       }),
     );
 
@@ -89,7 +113,7 @@ export class DiagnosisService extends BaseCRUDService<Diagnosis> {
       resultImageUrl,
       gpsLat: dto.gpsLat,
       gpsLng: dto.gpsLng,
-      province: dto.province,
+      province: geocodedProvince,
       envDescription: dto.envDescription,
       fieldParams: dto.fieldParams,
       modelVersionId: activeModel.id,
@@ -115,6 +139,7 @@ export class DiagnosisService extends BaseCRUDService<Diagnosis> {
         confidence: pred.confidence,
         maskPolygon: pred.box || pred.polygon,
         color: pred.color,
+        affectedAreaRatio: pred.affected_area_ratio || 0.0,
       });
     }
 
@@ -123,22 +148,37 @@ export class DiagnosisService extends BaseCRUDService<Diagnosis> {
         await this.diagnosisResultService.bulkCreate(diagnosisResultsData);
     }
 
-    // 7. Generate RAG Advisory for the primary disease
+    // 7. Generate RAG Advisory for the detected diseases
     let advisory = null;
     let diseaseName = 'Lúa khỏe mạnh / Không rõ bệnh';
     let confidence =
       detections && detections.length > 0 ? detections[0].confidence : 0.95;
     if (diagnosisResults.length > 0) {
-      const topResult = diagnosisResults.sort(
-        (a, b) => b.confidence - a.confidence,
-      )[0];
-      confidence = topResult.confidence;
-      const diseaseResult = await this.diseaseService.findById(
-        topResult.diseaseId,
+      // Sort results by affectedAreaRatio descending, then confidence descending
+      const sortedResults = [...diagnosisResults].sort(
+        (a, b) =>
+          (Number(b.affectedAreaRatio) || 0) - (Number(a.affectedAreaRatio) || 0) ||
+          Number(b.confidence) - Number(a.confidence),
       );
-      if (diseaseResult.success) {
-        const disease = diseaseResult.data;
-        diseaseName = disease.name;
+      const topResult = sortedResults[0];
+      confidence = Number(topResult.confidence);
+
+      // Get disease details for all results
+      const diseasesInfo = [];
+      for (const res of sortedResults) {
+        const diseaseResult = await this.diseaseService.findById(res.diseaseId);
+        if (diseaseResult.success) {
+          diseasesInfo.push({
+            name: diseaseResult.data.name,
+            confidence: Number(res.confidence),
+            affectedAreaRatio: Number(res.affectedAreaRatio || 0.0),
+            id: res.id,
+          });
+        }
+      }
+
+      if (diseasesInfo.length > 0) {
+        diseaseName = diseasesInfo.map((d) => d.name).join(' & ');
         // Merge fieldParams into envDescription for better RAG context if fieldParams exists
         let ragEnvContext = dto.envDescription || '';
         if (dto.fieldParams) {
@@ -148,7 +188,7 @@ export class DiagnosisService extends BaseCRUDService<Diagnosis> {
         }
 
         const advisoryResult = await this.nutritionService.getAdvisory(
-          disease.name,
+          diseasesInfo,
           ragEnvContext,
         );
         if (advisoryResult.success) {
@@ -188,6 +228,7 @@ export class DiagnosisService extends BaseCRUDService<Diagnosis> {
         'Lúa khỏe mạnh / Không rõ bệnh',
       confidence: pred.confidence,
       color: pred.color,
+      affectedAreaRatio: pred.affected_area_ratio || 0.0,
     }));
 
     if (mappedDetections.length === 0) {
@@ -212,7 +253,7 @@ export class DiagnosisService extends BaseCRUDService<Diagnosis> {
       detections: mappedDetections,
       rag_recommendation: advisory?.advisory || null,
       annotated_image: resultImageUrl || originalImageUrl,
-      low_confidence: confidence < 0.7,
+      low_confidence: confidence < 0.75,
       latency_ms: 450,
       env_adjustment,
     });
@@ -324,9 +365,12 @@ export class DiagnosisService extends BaseCRUDService<Diagnosis> {
     let confidence = 0.95;
 
     if (results.length > 0) {
-      const topResult = [...results].sort(
-        (a, b) => Number(b.confidence) - Number(a.confidence),
-      )[0];
+      const sortedResults = [...results].sort(
+        (a, b) =>
+          (Number(b.affectedAreaRatio) || 0) - (Number(a.affectedAreaRatio) || 0) ||
+          Number(b.confidence) - Number(a.confidence),
+      );
+      const topResult = sortedResults[0];
       confidence = Number(topResult.confidence);
 
       if (topResult.advisory) {
@@ -338,8 +382,19 @@ export class DiagnosisService extends BaseCRUDService<Diagnosis> {
       } else if (topResult.disease) {
         // Fallback for old records or failed persistence
         diseaseName = topResult.disease.name;
+        const diseasesInfo = [];
+        for (const res of sortedResults) {
+          if (res.disease) {
+            diseasesInfo.push({
+              name: res.disease.name,
+              confidence: Number(res.confidence),
+              affectedAreaRatio: Number(res.affectedAreaRatio || 0.0),
+              id: res.id,
+            });
+          }
+        }
         const advisoryResult = await this.nutritionService.getAdvisory(
-          diseaseName,
+          diseasesInfo,
           diagnosis.envDescription,
         );
         advisory = advisoryResult.success ? advisoryResult.data : null;
@@ -371,6 +426,7 @@ export class DiagnosisService extends BaseCRUDService<Diagnosis> {
       confidence: Number(res.confidence),
       color: res.color,
       maskPolygon: res.maskPolygon,
+      affectedAreaRatio: Number(res.affectedAreaRatio || 0.0),
     }));
 
     if (mappedDetections.length === 0) {
@@ -379,6 +435,7 @@ export class DiagnosisService extends BaseCRUDService<Diagnosis> {
         confidence,
         color: null,
         maskPolygon: null,
+        affectedAreaRatio: 0.0,
       } as any);
     }
 
@@ -393,7 +450,7 @@ export class DiagnosisService extends BaseCRUDService<Diagnosis> {
       detections: mappedDetections,
       rag_recommendation: advisory?.advisory || null,
       annotated_image: diagnosis.resultImageUrl || diagnosis.originalImageUrl,
-      low_confidence: confidence < 0.7,
+      low_confidence: confidence < 0.75,
       latency_ms: 350,
     });
   }
