@@ -15,6 +15,12 @@ export class CreateDiseaseDTO {
   @Length(2, 150)
   scientificName?: string;
 
+  @ApiProperty({ example: 'rice_blast' })
+  @IsNotEmpty()
+  @IsString()
+  @Length(2, 50)
+  aiClassName: string;
+
   @ApiPropertyOptional({ example: 'Đốm hình mắt, viền nâu, tâm xám' })
   @IsOptional()
   @IsString()
@@ -48,6 +54,12 @@ export class UpdateDiseaseDTO {
   @IsString()
   @Length(2, 150)
   scientificName?: string;
+
+  @ApiPropertyOptional({ example: 'rice_blast' })
+  @IsOptional()
+  @IsString()
+  @Length(2, 50)
+  aiClassName?: string;
 
   @ApiPropertyOptional({ example: 'Đốm hình mắt, viền nâu, tâm xám' })
   @IsOptional()

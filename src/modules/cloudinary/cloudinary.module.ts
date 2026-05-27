@@ -5,12 +5,14 @@ import { ConfigType } from '@nestjs/config';
 
 import cloudinaryConfig from '@configs/cloudinary.config';
 
+import { SystemConfigModule } from '@modules/system-config/system-config.module';
 import { UserModule } from '@modules/user/user.module';
 
 import { INJECTION_TOKEN } from '@shared/constants';
 
 import { CloudinaryController } from './cloudinary.controller';
 import { CloudinaryService } from './cloudinary.service';
+import { FileService } from './file.service';
 
 export const cloudinaryProvider: Provider = {
   provide: INJECTION_TOKEN.CLOUDINARY_SERVICE,
@@ -26,9 +28,9 @@ export const cloudinaryProvider: Provider = {
 };
 
 @Module({
-  imports: [UserModule],
+  imports: [UserModule, SystemConfigModule],
   controllers: [CloudinaryController],
-  providers: [CloudinaryService, cloudinaryProvider],
-  exports: [CloudinaryService, cloudinaryProvider],
+  providers: [CloudinaryService, FileService, cloudinaryProvider],
+  exports: [CloudinaryService, FileService, cloudinaryProvider],
 })
 export class CloudinaryModule {}

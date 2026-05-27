@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
+import { GeoContextModule } from '@modules/geo-context/geo-context.module';
+
 import { AdminProfile } from './entities/admin-profile.entity';
 import { FarmerProfile } from './entities/farmer-profile.entity';
 import { UserField } from './entities/user-field.entity';
@@ -22,6 +24,7 @@ import { UserController } from './user.controller';
       UserSocialAccount,
       UserField,
     ]),
+    GeoContextModule,
   ],
   controllers: [UserController, UserFieldController],
   providers: [

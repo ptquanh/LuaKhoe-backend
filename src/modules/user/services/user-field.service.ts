@@ -4,8 +4,9 @@ import { DataSource, EntityManager, Repository } from 'typeorm';
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 
+import { LocationService } from '@modules/geo-context/services/location.service';
+
 import { ERR_CODE } from '@shared/constants';
-import { reverseGeocode } from '@shared/helpers/geocoding.helper';
 import {
   generateNotFoundResult,
   generateSuccessResult,
@@ -25,6 +26,7 @@ export class UserFieldService extends BaseCRUDService<UserField> {
     protected repo: Repository<UserField>,
 
     private readonly dataSource: DataSource,
+    private readonly locationService: LocationService,
   ) {
     super(repo);
   }
@@ -237,7 +239,7 @@ export class UserFieldService extends BaseCRUDService<UserField> {
       profile.defaultGpsLat = lat;
       profile.defaultGpsLng = lng;
       try {
-        const province = await reverseGeocode(lat, lng);
+        const province = await this.locationService.reverseGeocode(lat, lng);
         profile.defaultProvince = province || null;
       } catch (err) {
         this.logger.error(

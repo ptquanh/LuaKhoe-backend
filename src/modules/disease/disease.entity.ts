@@ -20,6 +20,9 @@ export class Disease extends AuditWithTimezone {
   })
   scientificName: string;
 
+  @Column({ name: 'ai_class_name', type: 'varchar', length: 50, unique: true })
+  aiClassName: string;
+
   @Column({ type: 'text', nullable: true })
   signs: string;
 

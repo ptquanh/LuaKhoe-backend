@@ -89,10 +89,10 @@ export interface AdvisoryData {
   prevention_measures: string[];
 }
 
-export interface WeatherData {
-  temperature: number; // °C
-  humidity: number; // %
-  rainfall: string; // "none" | "light" | "heavy"
-  wind: string; // "calm" | "moderate" | "strong"
-  source: string; // "api" | "default"
+export interface WeatherInfo {
+  humidity: number;
+  temperature: number;
+  rainfall: 'none' | 'light' | 'heavy';
+  wind: 'calm' | 'moderate' | 'strong';
+  source: 'api' | 'default';
 }

@@ -17,7 +17,9 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { Reflector } from '@nestjs/core';
 
+import { rateLimitCacheKey } from '@shared/cache-key';
 import { ERR_CODE, INJECTION_TOKEN, METADATA_KEY } from '@shared/constants';
+
 
 @Injectable()
 export class RateLimitingInterceptor implements NestInterceptor {
@@ -43,7 +45,7 @@ export class RateLimitingInterceptor implements NestInterceptor {
     const endpoint = request.originalUrl;
     const method = request.method;
 
-    const key = `rate_limit:${method}:${endpoint}:${requestIp}`;
+    const key = rateLimitCacheKey(method, endpoint, requestIp);
 
     const rawCount = await this.cacheService.get(key);
     const userReqCount = (parseInt(rawCount) || 0) + 1;

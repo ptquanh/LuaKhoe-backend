@@ -1,9 +1,15 @@
+import { CacheService, SET_CACHE_POLICY } from 'mvc-common-toolkit';
 import { Repository } from 'typeorm';
 
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 
-import { SYSTEM_CONFIG_KEY } from '@shared/constants';
+import { systemConfigCacheKey } from '@shared/cache-key';
+import {
+  CACHE_TTL,
+  INJECTION_TOKEN,
+  SYSTEM_CONFIG_KEY,
+} from '@shared/constants';
 import { BaseCRUDService } from '@shared/services/base-crud.service';
 
 import { UpdateSystemConfigDto } from './system-config.dto';
@@ -19,6 +25,8 @@ export class SystemConfigService
   constructor(
     @InjectRepository(SystemConfig)
     configRepo: Repository<SystemConfig>,
+    @Inject(INJECTION_TOKEN.REDIS_SERVICE)
+    private readonly cacheService: CacheService,
   ) {
     super(configRepo);
   }
@@ -52,6 +60,11 @@ export class SystemConfigService
         value: '50',
         description: 'Limit of diagnosis requests allowed per farmer per day',
       },
+      {
+        key: SYSTEM_CONFIG_KEY.AI_MODEL_VERSION,
+        value: 'v1_cnn_mvp',
+        description: 'Active AI model version name',
+      },
     ];
 
     for (const item of defaults) {
@@ -64,6 +77,98 @@ export class SystemConfigService
           isActive: true,
         });
         this.logger.log(`Seeded configuration key: ${item.key}`);
+      }
+    }
+  }
+
+  async get(key: string): Promise<string | null> {
+    const cacheKey = systemConfigCacheKey(key);
+    try {
+      const cached = await this.cacheService.get(cacheKey);
+      if (cached) {
+        return cached;
+      }
+    } catch (err) {
+      this.logger.warn(
+        `Failed to get cache for key ${cacheKey}: ${err.message}`,
+      );
+    }
+
+    const config = await this.findOne({ key });
+    if (config && config.isActive) {
+      try {
+        await this.cacheService.set(cacheKey, config.value, {
+          policy: SET_CACHE_POLICY.WITH_TTL,
+          value: CACHE_TTL.THIRTY_DAYS,
+        });
+      } catch (err) {
+        this.logger.warn(
+          `Failed to set cache for key ${cacheKey}: ${err.message}`,
+        );
+      }
+      return config.value;
+    }
+    return null;
+  }
+
+  async getNumber(key: string, defaultValue: number): Promise<number> {
+    const val = await this.get(key);
+    if (val === null) return defaultValue;
+    const num = Number(val);
+    return isNaN(num) ? defaultValue : num;
+  }
+
+  override async create(dto: Partial<SystemConfig>): Promise<SystemConfig> {
+    const result = await super.create(dto);
+    if (result && result.key) {
+      try {
+        await this.cacheService.del(systemConfigCacheKey(result.key));
+      } catch (err) {
+        this.logger.warn(
+          `Failed to delete cache for key system_config:${result.key}: ${err.message}`,
+        );
+      }
+    }
+    return result;
+  }
+
+  override async updateByID(
+    id: number | string,
+    dto: Partial<SystemConfig>,
+  ): Promise<SystemConfig | null> {
+    const existing = await this.findByID(id);
+    const result = await super.updateByID(id, dto);
+    if (existing && existing.key) {
+      try {
+        await this.cacheService.del(systemConfigCacheKey(existing.key));
+      } catch (err) {
+        this.logger.warn(
+          `Failed to delete cache for key system_config:${existing.key}: ${err.message}`,
+        );
+      }
+    }
+    if (result && result.key && result.key !== existing?.key) {
+      try {
+        await this.cacheService.del(systemConfigCacheKey(result.key));
+      } catch (err) {
+        this.logger.warn(
+          `Failed to delete cache for key system_config:${result.key}: ${err.message}`,
+        );
+      }
+    }
+    return result;
+  }
+
+  override async deleteByID(entityID: number | string): Promise<void> {
+    const existing = await this.findByID(entityID);
+    await super.deleteByID(entityID);
+    if (existing && existing.key) {
+      try {
+        await this.cacheService.del(systemConfigCacheKey(existing.key));
+      } catch (err) {
+        this.logger.warn(
+          `Failed to delete cache for key system_config:${existing.key}: ${err.message}`,
+        );
       }
     }
   }

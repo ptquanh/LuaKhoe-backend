@@ -175,6 +175,7 @@ export const CACHE_TTL = {
   TEN_MINUTES: 10 * 60,
   ONE_HOUR: 60 * 60,
   ONE_DAY: 24 * 60 * 60,
+  THIRTY_DAYS: 30 * 24 * 60 * 60,
 } as const;
 
 export const CLOUDINARY_FOLDER = {

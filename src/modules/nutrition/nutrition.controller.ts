@@ -15,14 +15,17 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-import { PaginatedByKeywordDTO } from '@shared/common/pagination.dto';
 import { Roles } from '@shared/decorators/roles.decorator';
 import { ROLE } from '@shared/enums';
 import { AuthGuard } from '@shared/guards/auth.guard';
 import { RolesGuard } from '@shared/guards/roles.guard';
 import { generateSuccessResult } from '@shared/helpers/operation-result.helper';
 
-import { GetAdvisoryDto, SeedNutritionDocDto } from './nutrition.dto';
+import {
+  DocumentFilterDto,
+  GetAdvisoryDto,
+  SeedNutritionDocDto,
+} from './nutrition.dto';
 import { NutritionService } from './nutrition.service';
 
 @ApiTags('Nutritions')
@@ -38,12 +41,8 @@ export class NutritionController {
   @ApiOperation({
     summary: 'Get paginated nutrition knowledge documents (Admin only)',
   })
-  async getPaginated(@Query() query: PaginatedByKeywordDTO) {
-    const result = await this.nutritionService.paginateByKeyword(
-      query,
-      ['content', 'source'],
-      query.keyword,
-    );
+  async getPaginated(@Query() query: DocumentFilterDto) {
+    const result = await this.nutritionService.getChunks(query);
     return generateSuccessResult(result);
   }
 

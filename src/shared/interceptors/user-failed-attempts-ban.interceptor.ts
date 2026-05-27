@@ -19,6 +19,7 @@ import { Reflector } from '@nestjs/core';
 
 import { UserService } from '@modules/user/services/user.service';
 
+import { failedAttemptCacheKey as getFailedAttemptCacheKey } from '@shared/cache-key';
 import {
   APP_ACTION,
   DEFAULT_FAILED_ATTEMPTS_BAN,
@@ -116,13 +117,13 @@ export class UserInvalidAttemptBanInterceptor
     maxAttemptsAllowed: number,
     logId: string,
   ) {
-    const failedAttemptCacheKey = `user:${userId}:route:${routeIdentifier}:failed-attempts`;
+    const cacheKey = getFailedAttemptCacheKey(userId, routeIdentifier);
 
     try {
       const result = await this.cacheEngine.eval(
         incrementAndCompareNumberScript,
         1,
-        failedAttemptCacheKey,
+        cacheKey,
         'gte',
         maxAttemptsAllowed,
         60 * 60 * 24 * 30, // TTL
@@ -137,7 +138,7 @@ export class UserInvalidAttemptBanInterceptor
             logId,
             userId,
             payload: {
-              cacheKey: failedAttemptCacheKey,
+              cacheKey,
             },
           }),
         );
@@ -153,7 +154,7 @@ export class UserInvalidAttemptBanInterceptor
               endpoint: routeIdentifier,
             },
           }),
-          this.cacheEngine.del(failedAttemptCacheKey),
+          this.cacheEngine.del(cacheKey),
         ]);
       }
     } catch (error) {
@@ -165,7 +166,7 @@ export class UserInvalidAttemptBanInterceptor
           logId,
           userId,
           payload: {
-            cacheKey: failedAttemptCacheKey,
+            cacheKey,
           },
         }),
       );

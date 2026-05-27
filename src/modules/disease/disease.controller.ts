@@ -20,6 +20,7 @@ import {
 } from '@nestjs/swagger';
 
 import { CloudinaryService } from '@modules/cloudinary/cloudinary.service';
+import { FileService } from '@modules/cloudinary/file.service';
 
 import { PaginatedByKeywordDTO } from '@shared/common/pagination.dto';
 import { Roles } from '@shared/decorators/roles.decorator';
@@ -39,6 +40,7 @@ export class DiseaseController {
   constructor(
     private readonly diseaseService: DiseaseService,
     private readonly cloudinaryService: CloudinaryService,
+    private readonly fileService: FileService,
   ) {}
 
   @Get()
@@ -72,6 +74,7 @@ export class DiseaseController {
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Upload disease image to Cloudinary (Admin only)' })
   async uploadImage(@UploadedFile() file: Express.Multer.File) {
+    await this.fileService.validateImageSize(file);
     const uploadResult = await this.cloudinaryService.uploadImage(
       file,
       'luakhoe/diseases',

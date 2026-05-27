@@ -11,17 +11,20 @@ import aiServiceConfig from '@configs/ai-service.config';
 
 import { AiModelService } from '@modules/ai-model/ai-model.service';
 import { CloudinaryService } from '@modules/cloudinary/cloudinary.service';
+import { FileService } from '@modules/cloudinary/file.service';
 import { DiseaseService } from '@modules/disease/disease.service';
+import { LocationService } from '@modules/geo-context/services/location.service';
+import { WeatherService } from '@modules/geo-context/services/weather.service';
 import { NutritionService } from '@modules/nutrition/nutrition.service';
+import { SystemConfigService } from '@modules/system-config/system-config.service';
 import { UserFieldService } from '@modules/user/services/user-field.service';
 
+import { SYSTEM_CONFIG_KEY } from '@shared/constants';
 import { getVietnameseDiseaseName } from '@shared/helpers/disease.helper';
-import { reverseGeocode } from '@shared/helpers/geocoding.helper';
 import {
   generateNotFoundResult,
   generateSuccessResult,
 } from '@shared/helpers/operation-result.helper';
-import { fetchWeather } from '@shared/helpers/weather.helper';
 import { BaseCRUDService } from '@shared/services/base-crud.service';
 
 import { CreateDiagnosisDto, GetHistoryDto } from '../diagnosis.dto';
@@ -38,11 +41,15 @@ export class DiagnosisService extends BaseCRUDService<Diagnosis> {
     diagnosisRepo: Repository<Diagnosis>,
     private readonly diagnosisResultService: DiagnosisResultService,
     private readonly cloudinaryService: CloudinaryService,
+    private readonly fileService: FileService,
     private readonly aiModelService: AiModelService,
     private readonly diseaseService: DiseaseService,
     private readonly nutritionService: NutritionService,
     private readonly httpService: HttpService,
     private readonly userFieldService: UserFieldService,
+    private readonly systemConfigService: SystemConfigService,
+    private readonly locationService: LocationService,
+    private readonly weatherService: WeatherService,
     @Inject(aiServiceConfig.KEY)
     private readonly aiConfig: ConfigType<typeof aiServiceConfig>,
   ) {
@@ -55,6 +62,9 @@ export class DiagnosisService extends BaseCRUDService<Diagnosis> {
     file: Express.Multer.File,
   ): Promise<HttpResponse<any>> {
     this.logger.log(`Processing diagnosis for user ${userId}`);
+
+    // 0. Validate image size
+    await this.fileService.validateImageSize(file);
 
     // 1. Upload original image to Cloudinary
     const uploadResult = await this.cloudinaryService.uploadImage(file);
@@ -80,13 +90,19 @@ export class DiagnosisService extends BaseCRUDService<Diagnosis> {
     // 2.5 Perform Reverse Geocoding on Backend
     let geocodedProvince = null;
     if (dto.gpsLat !== undefined && dto.gpsLng !== undefined) {
-      geocodedProvince = await reverseGeocode(dto.gpsLat, dto.gpsLng);
+      geocodedProvince = await this.locationService.reverseGeocode(
+        dto.gpsLat,
+        dto.gpsLng,
+      );
     }
 
     // 2.7 Fetch Weather on NestJS (Orchestrator)
     let weatherData = null;
     if (dto.gpsLat !== undefined && dto.gpsLng !== undefined) {
-      weatherData = await fetchWeather(dto.gpsLat, dto.gpsLng);
+      weatherData = await this.weatherService.getWeather(
+        dto.gpsLat,
+        dto.gpsLng,
+      );
     } else {
       this.logger.warn(
         'Coordinates are missing for weather API — using default weather',
@@ -100,6 +116,18 @@ export class DiagnosisService extends BaseCRUDService<Diagnosis> {
       } as any;
     }
 
+    // Fetch dynamic AI prediction parameters
+    const confidenceThresholdStr = await this.systemConfigService.get(
+      SYSTEM_CONFIG_KEY.CONFIDENCE_THRESHOLD,
+    );
+    const confidenceThreshold = confidenceThresholdStr
+      ? Number(confidenceThresholdStr)
+      : 0.75;
+
+    const aiModelVersion = await this.systemConfigService.get(
+      SYSTEM_CONFIG_KEY.AI_MODEL_VERSION,
+    );
+
     // 3. Call AI Microservice for prediction
     const aiResponse = await firstValueFrom(
       this.httpService.post(`${this.aiConfig.baseUrl}/predict`, {
@@ -109,6 +137,8 @@ export class DiagnosisService extends BaseCRUDService<Diagnosis> {
         province: geocodedProvince,
         field_params: dto.fieldParams,
         weather: weatherData,
+        confidence_threshold: confidenceThreshold,
+        ai_model_version: aiModelVersion || 'v1_cnn_mvp',
       }),
     );
 
@@ -141,15 +171,40 @@ export class DiagnosisService extends BaseCRUDService<Diagnosis> {
     // 6. Save Individual Results
     let diagnosisResults: DiagnosisResult[] = [];
     const diagnosisResultsData: Partial<DiagnosisResult>[] = [];
-    for (const pred of detections || []) {
-      const rawName = pred.disease || pred.class_name;
-      const mappedDiseaseName = getVietnameseDiseaseName(rawName);
-      if (!mappedDiseaseName) continue;
 
-      const diseaseResult =
-        await this.diseaseService.findOrCreateByName(mappedDiseaseName);
-      if (!diseaseResult.success) continue;
-      const disease = diseaseResult.data;
+    const aiClassNames = Array.from(
+      new Set(
+        (detections || [])
+          .map((pred: any) => pred.disease || pred.class_name)
+          .filter(Boolean),
+      ),
+    ) as string[];
+
+    const matchingDiseases =
+      aiClassNames.length > 0
+        ? await this.diseaseService.findByAiClassNames(aiClassNames)
+        : [];
+
+    const diseaseMap = new Map<string, any>();
+    for (const d of matchingDiseases) {
+      diseaseMap.set(d.aiClassName, d);
+    }
+
+    // Warn if any YOLO detection class has no matching disease in DB (allowing graceful degradation)
+    for (const className of aiClassNames) {
+      if (!diseaseMap.has(className)) {
+        this.logger.warn(
+          `Graceful degradation: YOLO class_name "${className}" has no matching ai_class_name in the diseases database.`,
+        );
+      }
+    }
+
+    for (const pred of detections || []) {
+      const className = pred.disease || pred.class_name;
+      if (!className) continue;
+
+      const disease = diseaseMap.get(className);
+      if (!disease) continue; // Skip since there is no matching disease in the DB
 
       diagnosisResultsData.push({
         diagnosisId: savedDiagnosis.id,
@@ -189,6 +244,7 @@ export class DiagnosisService extends BaseCRUDService<Diagnosis> {
         if (diseaseResult.success) {
           diseasesInfo.push({
             name: diseaseResult.data.name,
+            scientificName: diseaseResult.data.scientificName || '',
             confidence: Number(res.confidence),
             affectedAreaRatio: Number(res.affectedAreaRatio || 0.0),
             id: res.id,
@@ -247,15 +303,20 @@ export class DiagnosisService extends BaseCRUDService<Diagnosis> {
       severity = 'high';
     }
 
-    const mappedDetections = (detections || []).map((pred) => ({
-      disease:
-        getVietnameseDiseaseName(pred.disease || pred.class_name) ||
-        pred.disease ||
-        'Lúa khỏe mạnh / Không rõ bệnh',
-      confidence: pred.confidence,
-      color: pred.color,
-      affectedAreaRatio: pred.affected_area_ratio || 0.0,
-    }));
+    const mappedDetections = (detections || []).map((pred) => {
+      const className = pred.disease || pred.class_name;
+      const disease = className ? diseaseMap.get(className) : null;
+      return {
+        disease: disease
+          ? disease.name
+          : getVietnameseDiseaseName(className) ||
+            className ||
+            'Lúa khỏe mạnh / Không rõ bệnh',
+        confidence: pred.confidence,
+        color: pred.color,
+        affectedAreaRatio: pred.affected_area_ratio || 0.0,
+      };
+    });
 
     if (mappedDetections.length === 0) {
       mappedDetections.push({

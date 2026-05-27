@@ -1,7 +1,8 @@
-import { Type } from 'class-transformer';
 import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 import { ApiProperty } from '@nestjs/swagger';
+
+import { PaginatedByKeywordDTO } from '@shared/common/pagination.dto';
 
 export class SeedNutritionDocDto {
   @ApiProperty({
@@ -47,4 +48,24 @@ export class GetAdvisoryDto {
   @IsString()
   @IsOptional()
   context?: string;
+}
+
+export class DocumentFilterDto extends PaginatedByKeywordDTO {
+  @ApiProperty({
+    description: 'Filter by source document or filename',
+    required: false,
+    example: 'Cẩm nang phòng trừ bệnh',
+  })
+  @IsString()
+  @IsOptional()
+  source?: string;
+
+  @ApiProperty({
+    description: 'Filter by file format extension',
+    required: false,
+    example: '.pdf',
+  })
+  @IsString()
+  @IsOptional()
+  format?: string;
 }

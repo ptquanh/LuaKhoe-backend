@@ -13,19 +13,26 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 
-import { ENV_KEY } from '@shared/constants';
+import { SystemConfigService } from '@modules/system-config/system-config.service';
+
+import { ENV_KEY, SYSTEM_CONFIG_KEY } from '@shared/constants';
 import { generateSuccessResult } from '@shared/helpers/operation-result.helper';
 import { BaseCRUDService } from '@shared/services/base-crud.service';
 
+import { DocumentFilterDto } from './nutrition.dto';
 import { Nutritions } from './nutrition.entity';
 
 // Define the state for our RAG graph
 const GraphState = Annotation.Root({
   disease: Annotation<string>(),
-  diseases:
-    Annotation<
-      { name: string; confidence: number; affectedAreaRatio: number }[]
-    >(),
+  diseases: Annotation<
+    {
+      name: string;
+      scientificName?: string;
+      confidence: number;
+      affectedAreaRatio: number;
+    }[]
+  >(),
   query: Annotation<string>(),
   context: Annotation<string>(),
   documents: Annotation<any[]>(),
@@ -46,8 +53,60 @@ export class NutritionService
     @InjectRepository(Nutritions)
     docRepo: Repository<Nutritions>,
     private readonly configService: ConfigService,
+    private readonly systemConfigService: SystemConfigService,
   ) {
     super(docRepo);
+  }
+
+  async getChunks(dto: DocumentFilterDto): Promise<any> {
+    const limit = dto.limit ? Number(dto.limit) : 10;
+    const offset = dto.offset ? Number(dto.offset) : 0;
+
+    const query = this.model.createQueryBuilder('nutrition');
+
+    if (dto.keyword) {
+      query.andWhere('nutrition.content ILIKE :keyword', {
+        keyword: `%${dto.keyword}%`,
+      });
+    }
+
+    if (dto.source) {
+      query.andWhere('nutrition.source ILIKE :source', {
+        source: `%${dto.source}%`,
+      });
+    }
+
+    if (dto.format) {
+      query.andWhere('nutrition.source ILIKE :format', {
+        format: `%${dto.format}`,
+      });
+    }
+
+    if (dto.sort) {
+      const orderDirection = dto.sort.startsWith('-') ? 'DESC' : 'ASC';
+      const sortField = dto.sort.replace(/^[+-]/, '');
+      query.orderBy(`nutrition.${sortField}`, orderDirection);
+    } else {
+      query.orderBy('nutrition.createdAt', 'DESC');
+    }
+
+    const [items, total] = await query
+      .take(limit)
+      .skip(offset)
+      .getManyAndCount();
+
+    // Map embedding to be null or compact to reduce network bandwidth
+    const rows = items.map((item) => {
+      const { embedding, ...rest } = item;
+      return rest;
+    });
+
+    return {
+      rows,
+      total,
+      limit,
+      offset,
+    };
   }
 
   onModuleInit() {
@@ -90,19 +149,51 @@ export class NutritionService
     const diseaseList =
       state.diseases ||
       (state.disease
-        ? [{ name: state.disease, confidence: 1.0, affectedAreaRatio: 0.0 }]
+        ? [
+            {
+              name: state.disease,
+              scientificName: undefined as string | undefined,
+              confidence: 1.0,
+              affectedAreaRatio: 0.0,
+            },
+          ]
         : []);
 
+    const limitStr = await this.systemConfigService.get(
+      SYSTEM_CONFIG_KEY.RAG_CONTEXT_WINDOW,
+    );
+    const limitVal = limitStr ? Number(limitStr) : 5;
+
     for (const d of diseaseList) {
-      const query = `${d.name} ${state.context || ''}`;
+      let scientificName = d.scientificName;
+      if (!scientificName) {
+        try {
+          const dbDisease = await this.model.query(
+            `SELECT scientific_name FROM diseases WHERE name = $1 LIMIT 1`,
+            [d.name],
+          );
+          if (dbDisease && dbDisease.length > 0) {
+            scientificName = dbDisease[0].scientific_name;
+          }
+        } catch (err) {
+          this.logger.warn(
+            `Failed to retrieve scientific name for ${d.name}: ${err.message}`,
+          );
+        }
+      }
+
+      const displayName = scientificName
+        ? `${d.name} (${scientificName})`
+        : d.name;
+      const query = `${displayName} ${state.context || ''}`;
       try {
         const embedding = await this.embeddings.embedQuery(query);
         const docs = await this.model.query(
           `SELECT id, content, source, chunk_metadata as metadata, (embedding::vector <=> $1::vector) as distance 
            FROM nutritions 
            ORDER BY distance ASC 
-           LIMIT 3`,
-          [`[${embedding.join(',')}]`],
+           LIMIT $2`,
+          [`[${embedding.join(',')}]`, limitVal],
         );
         documents.push(...docs);
       } catch (err) {
@@ -259,7 +350,12 @@ Yêu cầu BẮT BUỘC:
   async getAdvisory(
     diseases:
       | string
-      | { name: string; confidence: number; affectedAreaRatio: number }[],
+      | {
+          name: string;
+          scientificName?: string;
+          confidence: number;
+          affectedAreaRatio: number;
+        }[],
     context?: string,
   ): Promise<HttpResponse<any>> {
     const isArray = Array.isArray(diseases);
@@ -272,7 +368,14 @@ Yêu cầu BẮT BUỘC:
       disease: diseaseName,
       diseases: isArray
         ? diseases
-        : [{ name: diseases, confidence: 1.0, affectedAreaRatio: 0.0 }],
+        : [
+            {
+              name: diseases,
+              scientificName: undefined,
+              confidence: 1.0,
+              affectedAreaRatio: 0.0,
+            },
+          ],
       query: context || `Làm thế nào để xử lý bệnh ${diseaseName}?`,
       context: context,
     });

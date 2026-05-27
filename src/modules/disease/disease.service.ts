@@ -45,12 +45,40 @@ export class DiseaseService extends BaseCRUDService<Disease> {
     return generateSuccessResult(disease);
   }
 
-  async findOrCreateByName(name: string): Promise<HttpResponse<Disease>> {
+  async findByAiClassName(aiClassName: string): Promise<HttpResponse<Disease>> {
+    const disease = await this.findOne({ aiClassName });
+    if (!disease) {
+      return generateNotFoundResult(
+        `Disease with AI class name ${aiClassName} not found`,
+      );
+    }
+    return generateSuccessResult(disease);
+  }
+
+  async findByAiClassNames(names: string[]): Promise<Disease[]> {
+    if (!names || names.length === 0) return [];
+    return this.model
+      .createQueryBuilder('disease')
+      .where('disease.aiClassName IN (:...names)', { names })
+      .getMany();
+  }
+
+  async findOrCreateByName(
+    name: string,
+    aiClassName?: string,
+  ): Promise<HttpResponse<Disease>> {
     const existing = await this.findByName(name);
     if (existing.success) return existing;
 
-    const savedDisease = await this.create({ name });
-    this.logger.log(`Auto-created disease: ${name}`);
+    const fallbackAiClassName =
+      aiClassName || name.toLowerCase().replace(/\s+/g, '_');
+    const savedDisease = await this.create({
+      name,
+      aiClassName: fallbackAiClassName,
+    });
+    this.logger.log(
+      `Auto-created disease: ${name} with AI class: ${fallbackAiClassName}`,
+    );
     return generateSuccessResult(savedDisease);
   }
 

@@ -14,7 +14,7 @@ import { UserField } from '@modules/user/entities/user-field.entity';
 import { User } from '@modules/user/entities/user.entity';
 
 import { AuditWithTimezone } from '@shared/common/audit.entity';
-import { WeatherData } from '@shared/interfaces';
+import { WeatherInfo } from '@shared/interfaces';
 
 import { DiagnosisResult } from './diagnosis-result.entity';
 
@@ -52,7 +52,7 @@ export class Diagnosis extends AuditWithTimezone {
   province: string;
 
   @Column({ name: 'weather_data', type: 'jsonb', nullable: true })
-  weatherData: WeatherData;
+  weatherData: WeatherInfo;
 
   @Column({ name: 'env_description', type: 'text', nullable: true })
   envDescription: string;
