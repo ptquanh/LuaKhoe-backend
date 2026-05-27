@@ -20,7 +20,6 @@ import { Reflector } from '@nestjs/core';
 import { rateLimitCacheKey } from '@shared/cache-key';
 import { ERR_CODE, INJECTION_TOKEN, METADATA_KEY } from '@shared/constants';
 
-
 @Injectable()
 export class RateLimitingInterceptor implements NestInterceptor {
   constructor(

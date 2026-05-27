@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Global, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { GeoContextModule } from '@modules/geo-context/geo-context.module';
@@ -15,6 +15,7 @@ import { UserService } from './services/user.service';
 import { UserFieldController } from './user-field.controller';
 import { UserController } from './user.controller';
 
+@Global()
 @Module({
   imports: [
     TypeOrmModule.forFeature([

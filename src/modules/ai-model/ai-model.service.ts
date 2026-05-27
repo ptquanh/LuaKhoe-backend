@@ -36,6 +36,14 @@ export class AiModelService extends BaseCRUDService<AiModel> {
     return generateSuccessResult(model);
   }
 
+  async getActiveModels(): Promise<HttpResponse<AiModel[]>> {
+    const models = await this.findAll(
+      { isActive: true },
+      { sort: '-createdAt' },
+    );
+    return generateSuccessResult(models);
+  }
+
   async findById(id: string): Promise<HttpResponse<AiModel>> {
     const model = await this.findByID(id);
 
@@ -58,15 +66,8 @@ export class AiModelService extends BaseCRUDService<AiModel> {
       return targetModel;
     }
 
-    // If the target is already active, do nothing
-    if (targetModel.data.isActive) {
-      return targetModel;
-    }
-
-    // Deactivate currently active models first
-    await this.bulkUpdate({ isActive: true }, { isActive: false });
-    // Activate the target
-    const result = await this.updateByID(id, { isActive: true });
+    const newActiveState = !targetModel.data.isActive;
+    const result = await this.updateByID(id, { isActive: newActiveState });
     return generateSuccessResult(result);
   }
 }

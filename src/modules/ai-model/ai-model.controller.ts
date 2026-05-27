@@ -41,10 +41,10 @@ export class AiModelController {
   }
 
   @Get('active')
-  @ApiOperation({ summary: 'Get active AI model' })
+  @ApiOperation({ summary: 'Get active AI models' })
   @Roles(ROLE.ADMIN, ROLE.FARMER)
   async getActiveModel(): Promise<HttpResponse> {
-    return this.aiModelService.getActiveModel();
+    return this.aiModelService.getActiveModels();
   }
 
   @Post()

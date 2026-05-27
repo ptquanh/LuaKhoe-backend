@@ -68,6 +68,11 @@ export class CreateDiagnosisDto {
   @IsString()
   fieldId?: string;
 
+  @ApiPropertyOptional({ example: 'uuid-string' })
+  @IsOptional()
+  @IsString()
+  modelVersionId?: string;
+
   @ApiPropertyOptional({ example: 'Cần Thơ' })
   @IsOptional()
   @IsString()

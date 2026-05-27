@@ -3,7 +3,13 @@ import { firstValueFrom } from 'rxjs';
 import { Repository } from 'typeorm';
 
 import { HttpService } from '@nestjs/axios';
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+} from '@nestjs/common';
 import { ConfigType } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 
@@ -71,9 +77,29 @@ export class DiagnosisService extends BaseCRUDService<Diagnosis> {
     const originalImageUrl = uploadResult.secure_url;
 
     // 2. Get Active AI Model
-    const activeModelResult = await this.aiModelService.getActiveModel();
-    if (!activeModelResult.success) return activeModelResult;
-    const activeModel = activeModelResult.data;
+    let activeModel;
+    if (dto.modelVersionId) {
+      const modelResult = await this.aiModelService.findById(
+        dto.modelVersionId,
+      );
+      if (!modelResult.success) {
+        throw new BadRequestException(
+          'Mô hình này không tồn tại trong hệ thống',
+        );
+      }
+      activeModel = modelResult.data;
+      if (!activeModel.isActive) {
+        throw new BadRequestException('Mô hình này không còn hoạt động');
+      }
+    } else {
+      const activeModelResult = await this.aiModelService.getActiveModel();
+      if (!activeModelResult.success || !activeModelResult.data) {
+        throw new InternalServerErrorException(
+          'Hệ thống hiện chưa có mô hình AI nào khả dụng. Vui lòng liên hệ quản trị viên.',
+        );
+      }
+      activeModel = activeModelResult.data;
+    }
 
     // Resolve coordinates from UserField if fieldId is provided
     if (dto.fieldId) {
@@ -124,10 +150,6 @@ export class DiagnosisService extends BaseCRUDService<Diagnosis> {
       ? Number(confidenceThresholdStr)
       : 0.75;
 
-    const aiModelVersion = await this.systemConfigService.get(
-      SYSTEM_CONFIG_KEY.AI_MODEL_VERSION,
-    );
-
     // 3. Call AI Microservice for prediction
     const aiResponse = await firstValueFrom(
       this.httpService.post(`${this.aiConfig.baseUrl}/predict`, {
@@ -138,7 +160,7 @@ export class DiagnosisService extends BaseCRUDService<Diagnosis> {
         field_params: dto.fieldParams,
         weather: weatherData,
         confidence_threshold: confidenceThreshold,
-        ai_model_version: aiModelVersion || 'v1_cnn_mvp',
+        ai_model_version: activeModel.versionName,
       }),
     );
 

@@ -60,11 +60,6 @@ export class SystemConfigService
         value: '50',
         description: 'Limit of diagnosis requests allowed per farmer per day',
       },
-      {
-        key: SYSTEM_CONFIG_KEY.AI_MODEL_VERSION,
-        value: 'v1_cnn_mvp',
-        description: 'Active AI model version name',
-      },
     ];
 
     for (const item of defaults) {
