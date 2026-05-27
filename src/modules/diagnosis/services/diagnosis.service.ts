@@ -131,6 +131,7 @@ export class DiagnosisService extends BaseCRUDService<Diagnosis> {
       gpsLng: dto.gpsLng,
       province: geocodedProvince,
       envDescription: dto.envDescription,
+      fieldDescription: dto.fieldDescription,
       fieldParams: dto.fieldParams,
       modelVersionId: activeModel.id,
       weatherData: env_adjustment?.weather || null,
@@ -197,13 +198,20 @@ export class DiagnosisService extends BaseCRUDService<Diagnosis> {
 
       if (diseasesInfo.length > 0) {
         diseaseName = diseasesInfo.map((d) => d.name).join(' & ');
-        // Merge fieldParams into envDescription for better RAG context if fieldParams exists
-        let ragEnvContext = dto.envDescription || '';
+        // Structured environmental & field RAG Context prompt
+        let ragEnvContext = '';
+        if (dto.envDescription) {
+          ragEnvContext += `[Bối cảnh Môi trường]: ${dto.envDescription}\n`;
+        }
+        if (dto.fieldDescription) {
+          ragEnvContext += `[Tình trạng Thực địa]: ${dto.fieldDescription}\n`;
+        }
         if (dto.fieldParams) {
           const fp = dto.fieldParams;
           const fpStr = `[Thông số đồng ruộng: Nước: ${fp.water || 'Bình thường'}, Giai đoạn: ${fp.growth || 'Đẻ nhánh'}, Mật độ: ${fp.density || 'Vừa'}, Sương mù: ${fp.fog ? 'Có' : 'Không'}, Rầy nâu: ${fp.leafhopper ? 'Có' : 'Không'}, Phun thuốc gần đây: ${fp.pesticide ? 'Có' : 'Không'}]`;
-          ragEnvContext = ragEnvContext ? `${ragEnvContext}. ${fpStr}` : fpStr;
+          ragEnvContext += fpStr;
         }
+        ragEnvContext = ragEnvContext.trim();
 
         const advisoryResult = await this.nutritionService.getAdvisory(
           diseasesInfo,
@@ -330,12 +338,12 @@ export class DiagnosisService extends BaseCRUDService<Diagnosis> {
     if (dto.keyword) {
       if (dto.keyword.toLowerCase().includes('khỏe mạnh')) {
         query.andWhere(
-          '(disease.name ILIKE :keyword OR diagnosis.envDescription ILIKE :keyword OR result.id IS NULL)',
+          '(disease.name ILIKE :keyword OR diagnosis.envDescription ILIKE :keyword OR diagnosis.fieldDescription ILIKE :keyword OR result.id IS NULL)',
           { keyword: `%${dto.keyword}%` },
         );
       } else {
         query.andWhere(
-          '(disease.name ILIKE :keyword OR diagnosis.envDescription ILIKE :keyword)',
+          '(disease.name ILIKE :keyword OR diagnosis.envDescription ILIKE :keyword OR diagnosis.fieldDescription ILIKE :keyword)',
           { keyword: `%${dto.keyword}%` },
         );
       }

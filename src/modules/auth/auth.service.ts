@@ -480,7 +480,9 @@ export class AuthService {
       }
 
       const isOldPasswordValid = hasPassword
-        ? await bcryptHelper.compare(dto.oldPassword, foundUser.password)
+        ? dto.oldPassword
+          ? await bcryptHelper.compare(dto.oldPassword, foundUser.password)
+          : false
         : true;
 
       if (!isOldPasswordValid) {

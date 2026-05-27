@@ -44,6 +44,11 @@ export class UpdateUserProfileDTO {
   @IsString()
   lastName?: string;
 
+  @ApiPropertyOptional({ example: '0987654321' })
+  @IsOptional()
+  @IsString()
+  phone?: string;
+
   @ApiPropertyOptional({ example: 10.456789 })
   @IsOptional()
   @IsNumber()

@@ -111,13 +111,12 @@ export class LoginDTO {
 }
 
 export class ChangePasswordDTO {
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: 'The old password of the user',
   })
-  @IsNotEmpty()
-  @IsStrongPassword()
-  @Length(8, 60)
-  oldPassword: string;
+  @IsOptional()
+  @IsString()
+  oldPassword?: string;
 
   @ApiProperty({
     description: 'The new password of the user',

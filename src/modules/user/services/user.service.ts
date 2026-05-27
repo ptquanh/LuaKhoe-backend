@@ -8,6 +8,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Diagnosis } from '@modules/diagnosis/entities/diagnosis.entity';
 
 import { ENTITY_STATUS, ERR_CODE } from '@shared/constants';
+import { ROLE } from '@shared/enums';
 import {
   generateConflictResult,
   generateNotFoundResult,
@@ -83,8 +84,10 @@ export class UserService extends BaseCRUDService<User> {
       const baseConditions = [
         { username: ILike(keyword) },
         { email: ILike(keyword) },
-        { profile: { firstName: ILike(keyword) } },
-        { profile: { lastName: ILike(keyword) } },
+        { farmerProfile: { firstName: ILike(keyword) } },
+        { farmerProfile: { lastName: ILike(keyword) } },
+        { adminProfile: { firstName: ILike(keyword) } },
+        { adminProfile: { lastName: ILike(keyword) } },
       ];
 
       whereFilter = baseConditions.map((cond) => {
@@ -100,7 +103,7 @@ export class UserService extends BaseCRUDService<User> {
 
     const [users, total] = await this.repo.findAndCount({
       where: whereFilter,
-      relations: ['profile'],
+      relations: ['farmerProfile', 'adminProfile'],
       take: limit,
       skip: offset,
       order: { createdAt: 'DESC' },
@@ -147,8 +150,9 @@ export class UserService extends BaseCRUDService<User> {
     }
 
     const rows = users.map((u) => {
+      const profile = u.role === ROLE.ADMIN ? u.adminProfile : u.farmerProfile;
       const name =
-        [u.profile?.firstName, u.profile?.lastName].filter(Boolean).join(' ') ||
+        [profile?.firstName, profile?.lastName].filter(Boolean).join(' ') ||
         u.username;
 
       return {

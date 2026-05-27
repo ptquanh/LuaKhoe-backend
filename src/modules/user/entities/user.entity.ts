@@ -11,8 +11,9 @@ import { AuditWithTimezone } from '@shared/common/audit.entity';
 import { ENTITY_STATUS } from '@shared/constants';
 import { ROLE } from '@shared/enums';
 
+import { AdminProfile } from './admin-profile.entity';
+import { FarmerProfile } from './farmer-profile.entity';
 import { UserField } from './user-field.entity';
-import { UserProfile } from './user-profile.entity';
 import { UserSocialAccount } from './user-social-account.entity';
 
 @Entity('users')
@@ -43,8 +44,11 @@ export class User extends AuditWithTimezone {
   })
   metadata: Record<string, any>;
 
-  @OneToOne(() => UserProfile, (profile) => profile.user)
-  profile: UserProfile;
+  @OneToOne(() => FarmerProfile, (profile) => profile.user)
+  farmerProfile: FarmerProfile;
+
+  @OneToOne(() => AdminProfile, (profile) => profile.user)
+  adminProfile: AdminProfile;
 
   @OneToMany(() => UserSocialAccount, (social) => social.user)
   socialAccounts: UserSocialAccount[];

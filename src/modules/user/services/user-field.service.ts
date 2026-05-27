@@ -12,8 +12,8 @@ import {
 } from '@shared/helpers/operation-result.helper';
 import { BaseCRUDService } from '@shared/services/base-crud.service';
 
+import { FarmerProfile } from '../entities/farmer-profile.entity';
 import { UserField } from '../entities/user-field.entity';
-import { UserProfile } from '../entities/user-profile.entity';
 import { CreateUserFieldDto, UpdateUserFieldDto } from '../user-field.dto';
 
 @Injectable()
@@ -223,10 +223,10 @@ export class UserFieldService extends BaseCRUDService<UserField> {
     lat: number | null,
     lng: number | null,
   ): Promise<void> {
-    const userProfileRepo = manager.getRepository(UserProfile);
-    let profile = await userProfileRepo.findOne({ where: { userId } });
+    const farmerProfileRepo = manager.getRepository(FarmerProfile);
+    let profile = await farmerProfileRepo.findOne({ where: { userId } });
     if (!profile) {
-      profile = userProfileRepo.create({ userId });
+      profile = farmerProfileRepo.create({ userId });
     }
 
     if (lat === null || lng === null) {
@@ -247,6 +247,6 @@ export class UserFieldService extends BaseCRUDService<UserField> {
       }
     }
 
-    await userProfileRepo.save(profile);
+    await farmerProfileRepo.save(profile);
   }
 }

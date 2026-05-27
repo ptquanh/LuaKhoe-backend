@@ -58,6 +58,11 @@ export class CreateDiagnosisDto {
   @IsString()
   envDescription?: string;
 
+  @ApiPropertyOptional({ example: 'Brown spots on the leaf tip' })
+  @IsOptional()
+  @IsString()
+  fieldDescription?: string;
+
   @ApiPropertyOptional({ example: 'uuid-string' })
   @IsOptional()
   @IsString()

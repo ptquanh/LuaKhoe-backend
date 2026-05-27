@@ -57,6 +57,9 @@ export class Diagnosis extends AuditWithTimezone {
   @Column({ name: 'env_description', type: 'text', nullable: true })
   envDescription: string;
 
+  @Column({ name: 'field_description', type: 'text', nullable: true })
+  fieldDescription: string;
+
   @Column({ name: 'field_params', type: 'jsonb', nullable: true })
   fieldParams: any;
 

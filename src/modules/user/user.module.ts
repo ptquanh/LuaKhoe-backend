@@ -1,8 +1,9 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
+import { AdminProfile } from './entities/admin-profile.entity';
+import { FarmerProfile } from './entities/farmer-profile.entity';
 import { UserField } from './entities/user-field.entity';
-import { UserProfile } from './entities/user-profile.entity';
 import { UserSocialAccount } from './entities/user-social-account.entity';
 import { User } from './entities/user.entity';
 import { UserFieldService } from './services/user-field.service';
@@ -14,7 +15,13 @@ import { UserController } from './user.controller';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, UserProfile, UserSocialAccount, UserField]),
+    TypeOrmModule.forFeature([
+      User,
+      FarmerProfile,
+      AdminProfile,
+      UserSocialAccount,
+      UserField,
+    ]),
   ],
   controllers: [UserController, UserFieldController],
   providers: [

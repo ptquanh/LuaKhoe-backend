@@ -10,12 +10,12 @@ import { AuditWithTimezone } from '@shared/common/audit.entity';
 
 import { User } from './user.entity';
 
-@Entity('user_profiles')
-export class UserProfile extends AuditWithTimezone {
+@Entity('admin_profiles')
+export class AdminProfile extends AuditWithTimezone {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @OneToOne(() => User, (user) => user.profile, { onDelete: 'CASCADE' })
+  @OneToOne(() => User, (user) => user.adminProfile, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
   user: User;
 
@@ -28,24 +28,6 @@ export class UserProfile extends AuditWithTimezone {
   @Column({ name: 'last_name', type: 'varchar', nullable: true })
   lastName: string;
 
-  @Column({
-    name: 'default_gps_lat',
-    type: 'decimal',
-    precision: 10,
-    scale: 8,
-    nullable: true,
-  })
-  defaultGpsLat: number;
-
-  @Column({
-    name: 'default_gps_lng',
-    type: 'decimal',
-    precision: 11,
-    scale: 8,
-    nullable: true,
-  })
-  defaultGpsLng: number;
-
-  @Column({ name: 'default_province', type: 'varchar', nullable: true })
-  defaultProvince: string;
+  @Column({ name: 'phone', type: 'varchar', nullable: true })
+  phone: string;
 }
