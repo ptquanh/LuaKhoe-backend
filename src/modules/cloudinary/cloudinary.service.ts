@@ -5,8 +5,8 @@ import { Inject, Injectable } from '@nestjs/common';
 
 import {
   CACHE_TTL,
-  CLOUDINARY_FOLDER,
   INJECTION_TOKEN,
+  getStorageFolder,
 } from '@shared/constants';
 import { generateSuccessResult } from '@shared/helpers/operation-result.helper';
 
@@ -21,7 +21,7 @@ export class CloudinaryService {
 
   async uploadImage(
     file: Express.Multer.File,
-    folder: string = CLOUDINARY_FOLDER.DIAGNOSES,
+    folder: string = getStorageFolder().DIAGNOSES,
   ): Promise<any> {
     return new Promise((resolve, reject) => {
       const uploadStream = this.cloudinaryService.uploader.upload_stream(
@@ -39,9 +39,32 @@ export class CloudinaryService {
     });
   }
 
+  async uploadFile(
+    file: Express.Multer.File,
+    folder: string,
+    resourceType: 'raw' | 'auto' | 'image' | 'video' = 'raw',
+  ): Promise<any> {
+    return new Promise((resolve, reject) => {
+      // SỬ DỤNG upload_chunked_stream thay vì upload_stream
+      const uploadStream =
+        this.cloudinaryService.uploader.upload_chunked_stream(
+          {
+            folder,
+            resource_type: resourceType,
+            chunk_size: 6000000, // CẮT NHỎ: 6MB mỗi chunk để đảm bảo luôn dưới mức giới hạn 10MB
+          },
+          (error, result) => {
+            if (error) return reject(error);
+            resolve(result);
+          },
+        );
+      uploadStream.end(file.buffer);
+    });
+  }
+
   async uploadBase64Image(
     base64Data: string,
-    folder = CLOUDINARY_FOLDER.DIAGNOSES_RESULTS,
+    folder: string = getStorageFolder().DIAGNOSES_RESULTS,
   ): Promise<any> {
     const dataUri = `data:image/png;base64,${base64Data}`;
     return this.cloudinaryService.uploader.upload(dataUri, {

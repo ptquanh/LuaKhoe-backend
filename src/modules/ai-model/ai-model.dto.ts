@@ -1,6 +1,6 @@
 import { IsBoolean, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';
 
 export class CreateAiModelDto {
   @ApiProperty()
@@ -8,10 +8,10 @@ export class CreateAiModelDto {
   @IsNotEmpty()
   versionName: string;
 
-  @ApiProperty()
+  @ApiPropertyOptional()
   @IsString()
-  @IsNotEmpty()
-  filePath: string;
+  @IsOptional()
+  filePath?: string;
 
   @ApiPropertyOptional()
   @IsString()
@@ -23,3 +23,5 @@ export class CreateAiModelDto {
   @IsOptional()
   isActive?: boolean;
 }
+
+export class UpdateAiModelDto extends PartialType(CreateAiModelDto) {}

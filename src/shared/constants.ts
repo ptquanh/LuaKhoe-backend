@@ -54,6 +54,7 @@ export enum CONFIG_KEY {
   AI_SERVICE = 'aiService',
   GEMINI = 'gemini',
   GROQ = 'groq',
+  R2 = 'r2',
 }
 
 export enum SYSTEM_CONFIG_KEY {
@@ -105,6 +106,12 @@ export const ENV_KEY = {
   CLOUDINARY_CLOUD_NAME: CONFIG_KEY.CLOUDINARY + '.cloudName',
   CLOUDINARY_API_KEY: CONFIG_KEY.CLOUDINARY + '.apiKey',
   CLOUDINARY_API_SECRET: CONFIG_KEY.CLOUDINARY + '.apiSecret',
+
+  R2_BUCKET_NAME: CONFIG_KEY.R2 + '.bucketName',
+  R2_PUBLIC_DOMAIN: CONFIG_KEY.R2 + '.publicDomain',
+  R2_ACCOUNT_ID: CONFIG_KEY.R2 + '.accountId',
+  R2_ACCESS_KEY_ID: CONFIG_KEY.R2 + '.accessKeyId',
+  R2_SECRET_ACCESS_KEY: CONFIG_KEY.R2 + '.secretAccessKey',
 
   GEMINI_API_KEY: CONFIG_KEY.GEMINI + '.apiKey',
   GEMINI_EMBEDDING_MODEL_NAME: CONFIG_KEY.GEMINI + '.embeddingModelName',
@@ -177,11 +184,12 @@ export const CACHE_TTL = {
   THIRTY_DAYS: 30 * 24 * 60 * 60,
 } as const;
 
-export const CLOUDINARY_FOLDER = {
+export const getStorageFolder = () => ({
   DIAGNOSES: `${process.env.APP_NAME}/images/upload/diagnoses`,
-  DIAGNOSES_RESULTS: `${process.env.APP_NAME}/image/upload/diagnoses-results`,
+  DIAGNOSES_RESULTS: `${process.env.APP_NAME}/images/upload/diagnoses-results`,
   AVATARS: `${process.env.APP_NAME}/images/upload/avatars`,
-} as const;
+  AI_MODELS: `${process.env.APP_NAME}/files/upload/ai_models`,
+});
 
 export enum DISEASE_STATUS {
   VISIBLE = 'visible',

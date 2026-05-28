@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { RedisService, SET_CACHE_POLICY } from 'mvc-common-toolkit';
+import { tryParseStringIntoCorrectData } from 'mvc-common-toolkit/dist/src/pkg/object-helper';
 
 import { Inject, Injectable, Logger } from '@nestjs/common';
 
@@ -47,7 +48,7 @@ export class WeatherService {
       // 2. Kiểm tra dữ liệu trong Redis Cache trước
       const cachedData = await this.cacheService.get(key);
       if (cachedData) {
-        return cachedData;
+        return tryParseStringIntoCorrectData(cachedData);
       }
 
       const url = 'https://api.open-meteo.com/v1/forecast';
@@ -100,7 +101,7 @@ export class WeatherService {
         );
         const weatherTtlMinutes = weatherTtlStr ? Number(weatherTtlStr) : 30;
 
-        await this.cacheService.set(key, weatherData, {
+        await this.cacheService.set(key, JSON.stringify(weatherData), {
           policy: SET_CACHE_POLICY.WITH_TTL,
           value: weatherTtlMinutes * 60,
         });

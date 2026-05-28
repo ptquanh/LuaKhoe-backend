@@ -19,11 +19,11 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 
-import { CloudinaryService } from '@modules/cloudinary/cloudinary.service';
 import { FileService } from '@modules/cloudinary/file.service';
+import { StorageService, StorageType } from '@modules/storage/storage.service';
 
 import { PaginatedByKeywordDTO } from '@shared/common/pagination.dto';
-import { CLOUDINARY_FOLDER } from '@shared/constants';
+import { getStorageFolder } from '@shared/constants';
 import { Roles } from '@shared/decorators/roles.decorator';
 import { ROLE } from '@shared/enums';
 import { AuthGuard } from '@shared/guards/auth.guard';
@@ -31,7 +31,7 @@ import { RolesGuard } from '@shared/guards/roles.guard';
 import { generateSuccessResult } from '@shared/helpers/operation-result.helper';
 
 import { CreateDiseaseDTO, UpdateDiseaseDTO } from './disease.dto';
-import { DiseaseService } from './disease.service';
+import { DiseaseService } from './services/disease.service';
 
 @ApiTags('Diseases')
 @ApiBearerAuth()
@@ -40,7 +40,7 @@ import { DiseaseService } from './disease.service';
 export class DiseaseController {
   constructor(
     private readonly diseaseService: DiseaseService,
-    private readonly cloudinaryService: CloudinaryService,
+    private readonly storageService: StorageService,
     private readonly fileService: FileService,
   ) {}
 
@@ -76,11 +76,12 @@ export class DiseaseController {
   @ApiOperation({ summary: 'Upload disease image to Cloudinary (Admin only)' })
   async uploadImage(@UploadedFile() file: Express.Multer.File) {
     await this.fileService.validateImageSize(file);
-    const uploadResult = await this.cloudinaryService.uploadImage(
+    const imageUrl = await this.storageService.uploadFile(
       file,
-      CLOUDINARY_FOLDER.DIAGNOSES,
+      getStorageFolder().DIAGNOSES,
+      StorageType.CLOUDINARY,
     );
-    return generateSuccessResult({ imageUrl: uploadResult.secure_url });
+    return generateSuccessResult({ imageUrl });
   }
 
   @Get(':id')

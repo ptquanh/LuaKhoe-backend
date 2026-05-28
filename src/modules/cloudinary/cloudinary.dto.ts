@@ -2,14 +2,14 @@ import { IsEnum, IsNotEmpty, IsString } from 'class-validator';
 
 import { ApiProperty } from '@nestjs/swagger';
 
-import { CLOUDINARY_FOLDER } from '@shared/constants';
+import { getStorageFolder } from '@shared/constants';
 
 export class GetSignatureDto {
   @ApiProperty({
     description: 'Folder to upload files to',
-    enum: CLOUDINARY_FOLDER,
+    enum: getStorageFolder(),
   })
-  @IsEnum(CLOUDINARY_FOLDER)
+  @IsEnum(getStorageFolder())
   @IsNotEmpty()
   folder: string;
 }
@@ -17,9 +17,9 @@ export class GetSignatureDto {
 export class GetSignatureResponseDto {
   @ApiProperty({
     description: 'Folder to upload files to',
-    enum: CLOUDINARY_FOLDER,
+    enum: getStorageFolder(),
   })
-  @IsEnum(CLOUDINARY_FOLDER)
+  @IsEnum(getStorageFolder())
   @IsNotEmpty()
   folder: string;
 

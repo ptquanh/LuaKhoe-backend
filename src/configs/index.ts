@@ -6,6 +6,7 @@ import emailConfig from './email.config';
 import geminiConfig from './gemini.config';
 import groqConfig from './groq.config';
 import jwtConfig from './jwt.config';
+import r2Config from './r2.config';
 import redisConfig from './redis.config';
 
 export default [
@@ -17,5 +18,6 @@ export default [
   geminiConfig,
   groqConfig,
   jwtConfig,
+  r2Config,
   redisConfig,
 ];

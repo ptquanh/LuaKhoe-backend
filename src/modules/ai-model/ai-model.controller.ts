@@ -3,15 +3,25 @@ import { HttpResponse } from 'mvc-common-toolkit';
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseUUIDPipe,
+  Patch,
   Post,
   Put,
   Query,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import {
+  ApiBearerAuth,
+  ApiConsumes,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 
 import { PaginationDTO } from '@shared/common/pagination.dto';
 import { RequestUser } from '@shared/decorators/request-user.decorator';
@@ -22,7 +32,7 @@ import { RolesGuard } from '@shared/guards/roles.guard';
 import { generateSuccessResult } from '@shared/helpers/operation-result.helper';
 import { UserAuthProfile } from '@shared/interfaces';
 
-import { CreateAiModelDto } from './ai-model.dto';
+import { CreateAiModelDto, UpdateAiModelDto } from './ai-model.dto';
 import { AiModelService } from './ai-model.service';
 
 @ApiTags('AI Models')
@@ -43,25 +53,25 @@ export class AiModelController {
   @Get('active')
   @ApiOperation({ summary: 'Get active AI models' })
   @Roles(ROLE.ADMIN, ROLE.FARMER)
-  async getActiveModel(): Promise<HttpResponse> {
+  async getActiveModels(): Promise<HttpResponse> {
     return this.aiModelService.getActiveModels();
   }
 
   @Post()
-  @ApiOperation({ summary: 'Create new AI model' })
+  @ApiOperation({ summary: 'Upload and create new AI model (.onnx)' })
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FileInterceptor('file'))
   @Roles(ROLE.ADMIN)
   async createModel(
     @RequestUser() user: UserAuthProfile,
+    @UploadedFile() file: Express.Multer.File,
     @Body() data: CreateAiModelDto,
   ): Promise<HttpResponse> {
-    return this.aiModelService.createModel({
-      ...data,
-      uploadedById: user.id,
-    });
+    return this.aiModelService.uploadModel(file, data, user.id);
   }
 
   @Put(':id/active')
-  @ApiOperation({ summary: 'Set an AI model as active' })
+  @ApiOperation({ summary: 'Set an AI model as active (triggers hot-reload)' })
   @Roles(ROLE.ADMIN)
   async setActive(
     @Param('id', ParseUUIDPipe) id: string,
@@ -74,5 +84,29 @@ export class AiModelController {
   @Roles(ROLE.ADMIN)
   async getById(@Param('id', ParseUUIDPipe) id: string): Promise<HttpResponse> {
     return this.aiModelService.findById(id);
+  }
+
+  @Delete(':id')
+  @ApiOperation({ summary: 'Delete an inactive AI model' })
+  @Roles(ROLE.ADMIN)
+  async deleteModel(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<HttpResponse> {
+    return this.aiModelService.deleteModel(id);
+  }
+
+  @Patch(':id')
+  @ApiOperation({
+    summary: 'Update an AI model details or replace its ONNX file',
+  })
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FileInterceptor('file'))
+  @Roles(ROLE.ADMIN)
+  async updateModel(
+    @Param('id', ParseUUIDPipe) id: string,
+    @UploadedFile() file: Express.Multer.File,
+    @Body() data: UpdateAiModelDto,
+  ): Promise<HttpResponse> {
+    return this.aiModelService.updateModel(id, data, file);
   }
 }

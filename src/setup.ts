@@ -1,3 +1,5 @@
+import { json, urlencoded } from 'express';
+
 import {
   INestApplication,
   ValidationPipe,
@@ -57,6 +59,9 @@ export function setup(app: INestApplication) {
     new HttpLoggingInterceptor(),
     new HttpResponseInterceptor(),
   );
+
+  app.use(json({ limit: '500mb' }));
+  app.use(urlencoded({ extended: true, limit: '500mb' }));
 
   // Swagger config
   const enableSwagger = configService.get<boolean>(ENV_KEY.ENABLE_SWAGGER);

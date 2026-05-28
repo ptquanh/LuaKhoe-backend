@@ -1,31 +1,26 @@
 import { HttpResponse } from 'mvc-common-toolkit';
-import { firstValueFrom } from 'rxjs';
 import { Repository } from 'typeorm';
 
-import { HttpService } from '@nestjs/axios';
 import {
   BadRequestException,
-  Inject,
   Injectable,
   InternalServerErrorException,
   Logger,
 } from '@nestjs/common';
-import { ConfigType } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 
-import aiServiceConfig from '@configs/ai-service.config';
-
 import { AiModelService } from '@modules/ai-model/ai-model.service';
-import { CloudinaryService } from '@modules/cloudinary/cloudinary.service';
+import { AiService } from '@modules/ai-model/ai.service';
 import { FileService } from '@modules/cloudinary/file.service';
-import { DiseaseService } from '@modules/disease/disease.service';
+import { DiseaseService } from '@modules/disease/services/disease.service';
 import { LocationService } from '@modules/geo-context/services/location.service';
 import { WeatherService } from '@modules/geo-context/services/weather.service';
 import { NutritionService } from '@modules/nutrition/nutrition.service';
+import { StorageService, StorageType } from '@modules/storage/storage.service';
 import { SystemConfigService } from '@modules/system-config/system-config.service';
 import { UserFieldService } from '@modules/user/services/user-field.service';
 
-import { SYSTEM_CONFIG_KEY } from '@shared/constants';
+import { SYSTEM_CONFIG_KEY, getStorageFolder } from '@shared/constants';
 import { getVietnameseDiseaseName } from '@shared/helpers/disease.helper';
 import {
   generateNotFoundResult,
@@ -46,18 +41,16 @@ export class DiagnosisService extends BaseCRUDService<Diagnosis> {
     @InjectRepository(Diagnosis)
     diagnosisRepo: Repository<Diagnosis>,
     private readonly diagnosisResultService: DiagnosisResultService,
-    private readonly cloudinaryService: CloudinaryService,
+    private readonly storageService: StorageService,
     private readonly fileService: FileService,
     private readonly aiModelService: AiModelService,
+    private readonly aiService: AiService,
     private readonly diseaseService: DiseaseService,
     private readonly nutritionService: NutritionService,
-    private readonly httpService: HttpService,
     private readonly userFieldService: UserFieldService,
     private readonly systemConfigService: SystemConfigService,
     private readonly locationService: LocationService,
     private readonly weatherService: WeatherService,
-    @Inject(aiServiceConfig.KEY)
-    private readonly aiConfig: ConfigType<typeof aiServiceConfig>,
   ) {
     super(diagnosisRepo);
   }
@@ -72,9 +65,12 @@ export class DiagnosisService extends BaseCRUDService<Diagnosis> {
     // 0. Validate image size
     await this.fileService.validateImageSize(file);
 
-    // 1. Upload original image to Cloudinary
-    const uploadResult = await this.cloudinaryService.uploadImage(file);
-    const originalImageUrl = uploadResult.secure_url;
+    // 1. Upload original image to Cloudinary/Storage
+    const originalImageUrl = await this.storageService.uploadFile(
+      file,
+      getStorageFolder().DIAGNOSES,
+      StorageType.CLOUDINARY,
+    );
 
     // 2. Get Active AI Model
     let activeModel;
@@ -150,28 +146,31 @@ export class DiagnosisService extends BaseCRUDService<Diagnosis> {
       ? Number(confidenceThresholdStr)
       : 0.75;
 
-    // 3. Call AI Microservice for prediction
-    const aiResponse = await firstValueFrom(
-      this.httpService.post(`${this.aiConfig.baseUrl}/predict`, {
-        image_url: originalImageUrl,
-        gps_lat: dto.gpsLat,
-        gps_lng: dto.gpsLng,
+    // 3. Call AI Microservice for prediction using AiService sanity gate
+    const aiResponseData = await this.aiService.predict(
+      {
+        imageUrl: originalImageUrl,
+        gpsLat: dto.gpsLat,
+        gpsLng: dto.gpsLng,
         province: geocodedProvince,
-        field_params: dto.fieldParams,
+        fieldParams: dto.fieldParams,
         weather: weatherData,
-        confidence_threshold: confidenceThreshold,
-        ai_model_version: activeModel.versionName,
-      }),
+        confidenceThreshold,
+        modelVersionName: activeModel.versionName,
+      },
+      activeModel.id,
     );
 
-    const { detections, annotated_image, env_adjustment } = aiResponse.data;
+    const { detections, annotated_image, env_adjustment } = aiResponseData;
 
-    // 4. Upload annotated result image to Cloudinary
+    // 4. Upload annotated result image to Cloudinary/Storage
     let resultImageUrl = null;
     if (annotated_image) {
-      const resultUpload =
-        await this.cloudinaryService.uploadBase64Image(annotated_image);
-      resultImageUrl = resultUpload.secure_url;
+      resultImageUrl = await this.storageService.uploadBase64Image(
+        annotated_image,
+        getStorageFolder().DIAGNOSES_RESULTS,
+        StorageType.CLOUDINARY,
+      );
     }
 
     // 5. Create Diagnosis Record

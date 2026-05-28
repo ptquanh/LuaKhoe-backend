@@ -17,10 +17,10 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-import { CloudinaryService } from '@modules/cloudinary/cloudinary.service';
 import { FileService } from '@modules/cloudinary/file.service';
+import { StorageService, StorageType } from '@modules/storage/storage.service';
 
-import { CLOUDINARY_FOLDER } from '@shared/constants';
+import { getStorageFolder } from '@shared/constants';
 import { RequestUser } from '@shared/decorators/request-user.decorator';
 import { Roles } from '@shared/decorators/roles.decorator';
 import { ROLE } from '@shared/enums';
@@ -45,7 +45,7 @@ export class UserController {
   constructor(
     private readonly profileService: UserProfileService,
     private readonly userService: UserService,
-    private readonly cloudinaryService: CloudinaryService,
+    private readonly storageService: StorageService,
     private readonly fileService: FileService,
   ) {}
 
@@ -110,18 +110,19 @@ export class UserController {
     @UploadedFile() file: Express.Multer.File,
   ): Promise<HttpResponse> {
     await this.fileService.validateImageSize(file);
-    const uploadResult = await this.cloudinaryService.uploadImage(
+    const avatarUrl = await this.storageService.uploadFile(
       file,
-      CLOUDINARY_FOLDER.AVATARS,
+      getStorageFolder().AVATARS,
+      StorageType.CLOUDINARY,
     );
 
     await this.userService.updateByID(user.id, {
-      avatarUrl: uploadResult.secure_url,
+      avatarUrl,
     });
 
     return {
       success: true,
-      data: { avatarUrl: uploadResult.secure_url },
+      data: { avatarUrl },
     };
   }
 

@@ -18,6 +18,7 @@ import { GeoContextModule } from '@modules/geo-context/geo-context.module';
 import { GlobalModule } from '@modules/global/global.module';
 import { HealthModule } from '@modules/health/health.module';
 import { NutritionModule } from '@modules/nutrition/nutrition.module';
+import { StorageModule } from '@modules/storage/storage.module';
 import { SystemConfigModule } from '@modules/system-config/system-config.module';
 import { UserModule } from '@modules/user/user.module';
 
@@ -54,6 +55,7 @@ import configs from './configs';
     EmailModule,
     AiModelModule,
     CloudinaryModule,
+    StorageModule,
     DiagnosisModule,
     DiseaseModule,
     FeedbackModule,
