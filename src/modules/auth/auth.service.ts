@@ -72,7 +72,7 @@ export class AuthService {
     protected configService: ConfigService,
     protected jwtService: JwtService,
     protected emailService: EmailService,
-  ) {}
+  ) { }
 
   protected get appUrl(): string {
     return this.configService.getOrThrow(ENV_KEY.APP_PUBLIC_URL);
@@ -279,9 +279,9 @@ export class AuthService {
       const user = await this.userService.findOne(query);
 
       if (!user) {
-        return generateNotFoundResult(
-          'User not found',
-          ERR_CODE.USER_NOT_FOUND,
+        return generateBadRequestResult(
+          'Password or username incorrect',
+          ERR_CODE.PASSWORD_OR_USERNAME_INCORRECT,
         );
       }
 
@@ -293,9 +293,9 @@ export class AuthService {
       }
 
       if (!user.password) {
-        return generateConflictResult(
-          'Password incorrect',
-          ERR_CODE.PASSWORD_INCORRECT,
+        return generateBadRequestResult(
+          'Password or username incorrect',
+          ERR_CODE.PASSWORD_OR_USERNAME_INCORRECT,
         );
       }
 
@@ -305,9 +305,9 @@ export class AuthService {
       );
 
       if (!isPasswordValid) {
-        return generateConflictResult(
-          'Password incorrect',
-          ERR_CODE.PASSWORD_INCORRECT,
+        return generateBadRequestResult(
+          'Password or username incorrect',
+          ERR_CODE.PASSWORD_OR_USERNAME_INCORRECT,
         );
       }
 
