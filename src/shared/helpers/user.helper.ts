@@ -11,6 +11,7 @@ export const extractUserPublicInfo = (
     username: user.username,
     role: user.role,
     status: user.status,
+    avatarUrl: user.avatarUrl,
     hasPassword: !!user.password,
   };
 };

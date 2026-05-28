@@ -23,6 +23,7 @@ import { CloudinaryService } from '@modules/cloudinary/cloudinary.service';
 import { FileService } from '@modules/cloudinary/file.service';
 
 import { PaginatedByKeywordDTO } from '@shared/common/pagination.dto';
+import { CLOUDINARY_FOLDER } from '@shared/constants';
 import { Roles } from '@shared/decorators/roles.decorator';
 import { ROLE } from '@shared/enums';
 import { AuthGuard } from '@shared/guards/auth.guard';
@@ -77,7 +78,7 @@ export class DiseaseController {
     await this.fileService.validateImageSize(file);
     const uploadResult = await this.cloudinaryService.uploadImage(
       file,
-      'luakhoe/diseases',
+      CLOUDINARY_FOLDER.DIAGNOSES,
     );
     return generateSuccessResult({ imageUrl: uploadResult.secure_url });
   }

@@ -545,12 +545,27 @@ export class AuthService {
     });
 
     if (foundUserSocialAccount) {
+      const foundUser = await this.userService.findByID(
+        foundUserSocialAccount.userId,
+      );
+      if (foundUser && user.avatarUrl && !foundUser.avatarUrl) {
+        foundUser.avatarUrl = user.avatarUrl;
+        await this.userService.updateByID(foundUser.id, {
+          avatarUrl: user.avatarUrl,
+        });
+      }
       return this.handleLoginBySocialAccount(foundUserSocialAccount);
     }
 
     const foundUser = await this.userService.findOne({ email: user.email });
 
     if (foundUser) {
+      if (user.avatarUrl && !foundUser.avatarUrl) {
+        foundUser.avatarUrl = user.avatarUrl;
+        await this.userService.updateByID(foundUser.id, {
+          avatarUrl: user.avatarUrl,
+        });
+      }
       return this.handleNormalAccountLogin(foundUser, user);
     }
 
@@ -662,6 +677,7 @@ export class AuthService {
       username: user.email,
       password: null,
       status: ENTITY_STATUS.ACTIVE,
+      avatarUrl: user.avatarUrl,
     });
 
     await this.userSocialAccountService.create({
@@ -715,6 +731,7 @@ export class AuthService {
         email: profile.email,
         accessToken,
         refreshToken,
+        avatarUrl: profile.picture,
       };
 
       return {

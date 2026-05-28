@@ -20,6 +20,7 @@ export interface UserAuthProfile {
   username: string;
   role: ROLE;
   status: ENTITY_STATUS;
+  avatarUrl?: string;
 }
 
 export interface SystemUserAuthProfile {
@@ -68,6 +69,7 @@ export interface UserAuthSocialProfile {
   accessToken?: string;
   refreshToken?: string;
   referrerCode?: string;
+  avatarUrl?: string;
 }
 
 export interface TreatmentStep {

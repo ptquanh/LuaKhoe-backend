@@ -178,9 +178,10 @@ export const CACHE_TTL = {
 } as const;
 
 export const CLOUDINARY_FOLDER = {
-  DIAGNOSES: `${ENV_KEY.APP_NAME}/diagnoses`,
-  DIAGNOSES_RESULTS: `${ENV_KEY.APP_NAME}/diagnoses-results`,
-};
+  DIAGNOSES: `${process.env.APP_NAME}/images/upload/diagnoses`,
+  DIAGNOSES_RESULTS: `${process.env.APP_NAME}/image/upload/diagnoses-results`,
+  AVATARS: `${process.env.APP_NAME}/images/upload/avatars`,
+} as const;
 
 export enum DISEASE_STATUS {
   VISIBLE = 'visible',

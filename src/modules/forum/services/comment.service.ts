@@ -1,0 +1,293 @@
+import { DataSource, EntityManager, Repository } from 'typeorm';
+
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+
+import {
+  CreateCommentDTO,
+  GetCommentsQueryDTO,
+  UpdateCommentDTO,
+} from '../dto/comment.dto';
+import { CommentVote } from '../entities/comment-vote.entity';
+import { Comment } from '../entities/comment.entity';
+import { Post } from '../entities/post.entity';
+
+@Injectable()
+export class CommentService {
+  constructor(
+    @InjectRepository(Comment)
+    private readonly commentRepository: Repository<Comment>,
+    private readonly dataSource: DataSource,
+  ) {}
+
+  async createComment(
+    postId: string,
+    dto: CreateCommentDTO,
+    authorId: string,
+  ): Promise<Comment> {
+    return this.dataSource.transaction(async (manager) => {
+      const post = await manager.findOne(Post, { where: { id: postId } });
+      if (!post) {
+        throw new NotFoundException('Post not found');
+      }
+
+      if (dto.parentId) {
+        const parent = await manager.findOne(Comment, {
+          where: { id: dto.parentId },
+        });
+        if (!parent) {
+          throw new NotFoundException('Parent comment not found');
+        }
+      }
+
+      const comment = manager.create(Comment, {
+        postId,
+        authorId,
+        parentId: dto.parentId || null,
+        content: dto.content,
+      });
+
+      const savedComment = await manager.save(comment);
+
+      // Increment commentCount by 1 and score by 2
+      await manager.increment(Post, { id: postId }, 'commentCount', 1);
+      await manager.increment(Post, { id: postId }, 'score', 2);
+
+      return savedComment;
+    });
+  }
+
+  async getCommentsForPost(
+    postId: string,
+    query: GetCommentsQueryDTO,
+    currentUserId?: string,
+  ) {
+    const limit = query.limit || 3;
+
+    const queryBuilder = this.commentRepository
+      .createQueryBuilder('comment')
+      .leftJoinAndSelect('comment.author', 'author')
+      .leftJoinAndSelect('author.farmerProfile', 'farmerProfile')
+      .leftJoinAndSelect('author.adminProfile', 'adminProfile')
+      .where('comment.postId = :postId', { postId })
+      .andWhere('comment.parentId IS NULL');
+
+    if (query.cursor) {
+      const cursorCreatedAt = new Date(query.cursor);
+      queryBuilder.andWhere('comment.createdAt > :cursorCreatedAt', {
+        cursorCreatedAt,
+      });
+    }
+
+    queryBuilder.orderBy('comment.createdAt', 'ASC');
+    queryBuilder.take(limit + 1);
+
+    if (currentUserId) {
+      queryBuilder
+        .leftJoin(
+          'comment_votes',
+          'currentUserVote',
+          'currentUserVote.comment_id = comment.id AND currentUserVote.user_id = :currentUserId',
+          { currentUserId },
+        )
+        .addSelect('currentUserVote.type', 'userVote');
+    }
+
+    const { entities, raw } = await queryBuilder.getRawAndEntities();
+
+    const hasNextPage = entities.length > limit;
+    const items = hasNextPage ? entities.slice(0, limit) : entities;
+
+    const mappedComments = items.map((entity) => {
+      const rawItem = raw.find(
+        (r) => r.comment_id === entity.id || r.id === entity.id,
+      );
+      entity['userVote'] = rawItem ? rawItem.userVote || null : null;
+      return entity;
+    });
+
+    // Recursively load replies up to 3 levels for loaded comments
+    for (const comment of mappedComments) {
+      await this.loadRepliesRecursively(comment, currentUserId, 1);
+    }
+
+    let nextCursor: string | null = null;
+    if (hasNextPage && items.length > 0) {
+      nextCursor = items[items.length - 1].createdAt.toISOString();
+    }
+
+    return {
+      items: mappedComments,
+      nextCursor,
+    };
+  }
+
+  private async loadRepliesRecursively(
+    parentComment: Comment,
+    currentUserId?: string,
+    depth = 1,
+  ) {
+    if (depth > 3) return;
+
+    const repliesQuery = this.commentRepository
+      .createQueryBuilder('reply')
+      .leftJoinAndSelect('reply.author', 'author')
+      .leftJoinAndSelect('author.farmerProfile', 'farmerProfile')
+      .leftJoinAndSelect('author.adminProfile', 'adminProfile')
+      .where('reply.parentId = :parentId', { parentId: parentComment.id })
+      .orderBy('reply.createdAt', 'ASC');
+
+    if (currentUserId) {
+      repliesQuery
+        .leftJoin(
+          'comment_votes',
+          'cv',
+          'cv.comment_id = reply.id AND cv.user_id = :currentUserId',
+          { currentUserId },
+        )
+        .addSelect('cv.type', 'userVote');
+    }
+
+    const { entities, raw } = await repliesQuery.getRawAndEntities();
+
+    for (let i = 0; i < entities.length; i++) {
+      const entity = entities[i];
+      const rawItem = raw.find(
+        (r) => r.reply_id === entity.id || r.id === entity.id,
+      );
+      entity['userVote'] = rawItem ? rawItem.userVote || null : null;
+      await this.loadRepliesRecursively(entity, currentUserId, depth + 1);
+    }
+
+    parentComment.replies = entities;
+  }
+
+  async updateComment(
+    commentId: string,
+    dto: UpdateCommentDTO,
+    userId: string,
+  ): Promise<Comment> {
+    const comment = await this.commentRepository.findOne({
+      where: { id: commentId },
+    });
+    if (!comment) {
+      throw new NotFoundException('Comment not found');
+    }
+
+    if (comment.authorId !== userId) {
+      throw new ForbiddenException(
+        'You are not authorized to update this comment',
+      );
+    }
+
+    comment.content = dto.content;
+    return this.commentRepository.save(comment);
+  }
+
+  async voteComment(
+    commentId: string,
+    userId: string,
+    type: 'up' | 'down' | 'none',
+  ): Promise<void> {
+    await this.dataSource.transaction(async (manager) => {
+      const comment = await manager.findOne(Comment, {
+        where: { id: commentId },
+      });
+      if (!comment) {
+        throw new NotFoundException('Comment not found');
+      }
+
+      const existingVote = await manager.findOne(CommentVote, {
+        where: { commentId, userId },
+      });
+
+      if (existingVote) {
+        if (type === 'none' || existingVote.type === type) {
+          // HỦY VOTE
+          await manager.remove(existingVote);
+          if (existingVote.type === 'up') {
+            await manager.decrement(Comment, { id: commentId }, 'upvotes', 1);
+          } else {
+            await manager.decrement(Comment, { id: commentId }, 'downvotes', 1);
+          }
+        } else {
+          // ĐỔI VOTE
+          existingVote.type = type;
+          await manager.save(existingVote);
+          if (type === 'up') {
+            await manager.increment(Comment, { id: commentId }, 'upvotes', 1);
+            await manager.decrement(Comment, { id: commentId }, 'downvotes', 1);
+          } else {
+            await manager.decrement(Comment, { id: commentId }, 'upvotes', 1);
+            await manager.increment(Comment, { id: commentId }, 'downvotes', 1);
+          }
+        }
+      } else {
+        // VOTE MỚI
+        if (type !== 'none') {
+          const newVote = manager.create(CommentVote, {
+            commentId,
+            userId,
+            type,
+          });
+          await manager.save(newVote);
+          if (type === 'up') {
+            await manager.increment(Comment, { id: commentId }, 'upvotes', 1);
+          } else {
+            await manager.increment(Comment, { id: commentId }, 'downvotes', 1);
+          }
+        }
+      }
+    });
+  }
+
+  async softDeleteComment(
+    commentId: string,
+    userId: string,
+    isAdmin: boolean,
+  ): Promise<void> {
+    const comment = await this.commentRepository.findOne({
+      where: { id: commentId },
+    });
+    if (!comment) {
+      throw new NotFoundException('Comment not found');
+    }
+
+    if (!isAdmin && comment.authorId !== userId) {
+      throw new ForbiddenException(
+        'You are not authorized to delete this comment',
+      );
+    }
+
+    await this.dataSource.transaction(async (manager) => {
+      // Find all child comments recursively
+      const getChildCommentIds = async (
+        mgr: EntityManager,
+        parentId: string,
+      ): Promise<string[]> => {
+        const children = await mgr.find(Comment, { where: { parentId } });
+        let ids = children.map((c) => c.id);
+        for (const childId of children.map((c) => c.id)) {
+          const subIds = await getChildCommentIds(mgr, childId);
+          ids = ids.concat(subIds);
+        }
+        return ids;
+      };
+
+      const childIds = await getChildCommentIds(manager, commentId);
+      const allIds = [commentId, ...childIds];
+
+      // Soft delete all targeted comments
+      await manager.softDelete(Comment, allIds);
+
+      // Decrement post commentCount by N and score by N * 2
+      const N = allIds.length;
+      await manager.decrement(Post, { id: comment.postId }, 'commentCount', N);
+      await manager.decrement(Post, { id: comment.postId }, 'score', N * 2);
+    });
+  }
+}

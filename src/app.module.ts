@@ -13,6 +13,7 @@ import { DiagnosisModule } from '@modules/diagnosis/diagnosis.module';
 import { DiseaseModule } from '@modules/disease/disease.module';
 import { EmailModule } from '@modules/email/email.module';
 import { FeedbackModule } from '@modules/feedback/feedback.module';
+import { ForumModule } from '@modules/forum/forum.module';
 import { GeoContextModule } from '@modules/geo-context/geo-context.module';
 import { GlobalModule } from '@modules/global/global.module';
 import { HealthModule } from '@modules/health/health.module';
@@ -59,6 +60,7 @@ import configs from './configs';
     NutritionModule,
     SystemConfigModule,
     GeoContextModule,
+    ForumModule,
   ],
 })
 export class AppModule {}

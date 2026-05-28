@@ -1,6 +1,7 @@
 import { Global, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
+import { CloudinaryModule } from '@modules/cloudinary/cloudinary.module';
 import { GeoContextModule } from '@modules/geo-context/geo-context.module';
 
 import { AdminProfile } from './entities/admin-profile.entity';
@@ -26,6 +27,7 @@ import { UserController } from './user.controller';
       UserField,
     ]),
     GeoContextModule,
+    CloudinaryModule,
   ],
   controllers: [UserController, UserFieldController],
   providers: [

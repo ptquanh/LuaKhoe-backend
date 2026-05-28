@@ -44,6 +44,15 @@ export class User extends AuditWithTimezone {
   })
   metadata: Record<string, any>;
 
+  @Column({
+    name: 'avatar_url',
+    type: 'varchar',
+    length: 512,
+    default:
+      'https://res.cloudinary.com/ptquanh/image/upload/v1779947161/default-avatar.png',
+  })
+  avatarUrl: string;
+
   @OneToOne(() => FarmerProfile, (profile) => profile.user)
   farmerProfile: FarmerProfile;
 

@@ -21,7 +21,7 @@ export class CloudinaryService {
 
   async uploadImage(
     file: Express.Multer.File,
-    folder = CLOUDINARY_FOLDER.DIAGNOSES,
+    folder: string = CLOUDINARY_FOLDER.DIAGNOSES,
   ): Promise<any> {
     return new Promise((resolve, reject) => {
       const uploadStream = this.cloudinaryService.uploader.upload_stream(
