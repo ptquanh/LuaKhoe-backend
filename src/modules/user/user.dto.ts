@@ -1,10 +1,4 @@
-import {
-  IsEmail,
-  IsEnum,
-  IsNumber,
-  IsOptional,
-  IsString,
-} from 'class-validator';
+import { IsEmail, IsEnum, IsOptional, IsString } from 'class-validator';
 
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
@@ -48,21 +42,6 @@ export class UpdateUserProfileDTO {
   @IsOptional()
   @IsString()
   phone?: string;
-
-  @ApiPropertyOptional({ example: 10.456789 })
-  @IsOptional()
-  @IsNumber()
-  defaultGpsLat?: number;
-
-  @ApiPropertyOptional({ example: 105.123456 })
-  @IsOptional()
-  @IsNumber()
-  defaultGpsLng?: number;
-
-  @ApiPropertyOptional({ example: 'An Giang' })
-  @IsOptional()
-  @IsString()
-  defaultProvince?: string;
 }
 
 export class UpdateUserStatusDTO {

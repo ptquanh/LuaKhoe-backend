@@ -30,25 +30,4 @@ export class FarmerProfile extends AuditWithTimezone {
 
   @Column({ name: 'phone', type: 'varchar', nullable: true })
   phone: string;
-
-  @Column({
-    name: 'default_gps_lat',
-    type: 'decimal',
-    precision: 10,
-    scale: 8,
-    nullable: true,
-  })
-  defaultGpsLat: number;
-
-  @Column({
-    name: 'default_gps_lng',
-    type: 'decimal',
-    precision: 11,
-    scale: 8,
-    nullable: true,
-  })
-  defaultGpsLng: number;
-
-  @Column({ name: 'default_province', type: 'varchar', nullable: true })
-  defaultProvince: string;
 }

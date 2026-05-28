@@ -108,9 +108,6 @@ export class UserProfileService extends BaseCRUDService<FarmerProfile> {
         firstName: dto.firstName,
         lastName: dto.lastName,
         phone: dto.phone,
-        defaultGpsLat: dto.defaultGpsLat,
-        defaultGpsLng: dto.defaultGpsLng,
-        defaultProvince: dto.defaultProvince,
       };
 
       // clean undefined fields

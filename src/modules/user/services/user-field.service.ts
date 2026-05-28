@@ -1,10 +1,8 @@
 import { OperationResult } from 'mvc-common-toolkit';
-import { DataSource, EntityManager, Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-
-import { LocationService } from '@modules/geo-context/services/location.service';
 
 import { ERR_CODE } from '@shared/constants';
 import {
@@ -13,7 +11,6 @@ import {
 } from '@shared/helpers/operation-result.helper';
 import { BaseCRUDService } from '@shared/services/base-crud.service';
 
-import { FarmerProfile } from '../entities/farmer-profile.entity';
 import { UserField } from '../entities/user-field.entity';
 import { CreateUserFieldDto, UpdateUserFieldDto } from '../user-field.dto';
 
@@ -26,7 +23,6 @@ export class UserFieldService extends BaseCRUDService<UserField> {
     protected repo: Repository<UserField>,
 
     private readonly dataSource: DataSource,
-    private readonly locationService: LocationService,
   ) {
     super(repo);
   }
@@ -65,14 +61,6 @@ export class UserFieldService extends BaseCRUDService<UserField> {
           isDefault: true,
         });
         savedField = await fieldRepo.save(newField);
-
-        // 3. Sync coordinates and geocoded province to UserProfile
-        await this.syncProfileDefaultLocation(
-          manager,
-          userId,
-          savedField.gpsLat,
-          savedField.gpsLng,
-        );
       });
     } else {
       const newField = this.repo.create({
@@ -100,8 +88,6 @@ export class UserFieldService extends BaseCRUDService<UserField> {
 
     const isTogglingDefaultToTrue = dto.isDefault === true && !field.isDefault;
     const isTogglingDefaultToFalse = dto.isDefault === false && field.isDefault;
-    const isUpdatingCoordsOfDefault =
-      field.isDefault && (dto.gpsLat !== undefined || dto.gpsLng !== undefined);
 
     if (isTogglingDefaultToTrue) {
       await this.dataSource.transaction(async (manager) => {
@@ -113,14 +99,6 @@ export class UserFieldService extends BaseCRUDService<UserField> {
         // 2. Update current field to default and apply other updates
         Object.assign(field, dto, { isDefault: true });
         updatedField = await fieldRepo.save(field);
-
-        // 3. Sync to profile
-        await this.syncProfileDefaultLocation(
-          manager,
-          userId,
-          updatedField.gpsLat,
-          updatedField.gpsLng,
-        );
       });
     } else if (isTogglingDefaultToFalse) {
       // Find another field to promote
@@ -140,31 +118,7 @@ export class UserFieldService extends BaseCRUDService<UserField> {
         if (alternativeField) {
           alternativeField.isDefault = true;
           await fieldRepo.save(alternativeField);
-
-          await this.syncProfileDefaultLocation(
-            manager,
-            userId,
-            alternativeField.gpsLat,
-            alternativeField.gpsLng,
-          );
-        } else {
-          // No fields remain
-          await this.syncProfileDefaultLocation(manager, userId, null, null);
         }
-      });
-    } else if (isUpdatingCoordsOfDefault) {
-      await this.dataSource.transaction(async (manager) => {
-        const fieldRepo = manager.getRepository(UserField);
-
-        Object.assign(field, dto);
-        updatedField = await fieldRepo.save(field);
-
-        await this.syncProfileDefaultLocation(
-          manager,
-          userId,
-          updatedField.gpsLat,
-          updatedField.gpsLng,
-        );
       });
     } else {
       // Regular updates, no default change
@@ -200,16 +154,6 @@ export class UserFieldService extends BaseCRUDService<UserField> {
         if (alternativeField) {
           alternativeField.isDefault = true;
           await fieldRepo.save(alternativeField);
-
-          await this.syncProfileDefaultLocation(
-            manager,
-            userId,
-            alternativeField.gpsLat,
-            alternativeField.gpsLng,
-          );
-        } else {
-          // No fields remain for this user
-          await this.syncProfileDefaultLocation(manager, userId, null, null);
         }
       });
     } else {
@@ -217,38 +161,5 @@ export class UserFieldService extends BaseCRUDService<UserField> {
     }
 
     return generateSuccessResult();
-  }
-
-  private async syncProfileDefaultLocation(
-    manager: EntityManager,
-    userId: string,
-    lat: number | null,
-    lng: number | null,
-  ): Promise<void> {
-    const farmerProfileRepo = manager.getRepository(FarmerProfile);
-    let profile = await farmerProfileRepo.findOne({ where: { userId } });
-    if (!profile) {
-      profile = farmerProfileRepo.create({ userId });
-    }
-
-    if (lat === null || lng === null) {
-      profile.defaultGpsLat = null;
-      profile.defaultGpsLng = null;
-      profile.defaultProvince = null;
-    } else {
-      profile.defaultGpsLat = lat;
-      profile.defaultGpsLng = lng;
-      try {
-        const province = await this.locationService.reverseGeocode(lat, lng);
-        profile.defaultProvince = province || null;
-      } catch (err) {
-        this.logger.error(
-          `Error resolving province for coordinates (${lat}, ${lng}): ${err}`,
-        );
-        profile.defaultProvince = null;
-      }
-    }
-
-    await farmerProfileRepo.save(profile);
   }
 }
