@@ -1,13 +1,9 @@
 import {
   BadRequestException,
   Body,
-  CanActivate,
   Controller,
   Delete,
-  ExecutionContext,
-  ForbiddenException,
   Get,
-  Injectable,
   Param,
   Post,
   Put,
@@ -17,20 +13,20 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { User } from '@modules/user/entities/user.entity';
-import { UserService } from '@modules/user/services/user.service';
 
 import { RequestUser } from '@shared/decorators/request-user.decorator';
-import { POST_STATUS, ROLE } from '@shared/enums';
+import { ROLE } from '@shared/enums';
 import { AuthGuard } from '@shared/guards/auth.guard';
+import { OptionalAuthGuard } from '@shared/guards/optional-auth.guard';
 import { generateSuccessResult } from '@shared/helpers/operation-result.helper';
 
 import {
   CreateCommentDTO,
+  FindOneCommentParamDTO,
   GetCommentsQueryDTO,
   UpdateCommentDTO,
   VoteCommentDTO,
@@ -38,39 +34,14 @@ import {
 import {
   AiEnhancePostDTO,
   CreatePostDTO,
+  FindOnePostParamDTO,
+  GetMyPostsQueryDTO,
   GetPostsQueryDTO,
   UpdatePostDTO,
   VotePostDTO,
 } from '../dto/post.dto';
 import { CommentService } from '../services/comment.service';
 import { PostService } from '../services/post.service';
-
-@Injectable()
-export class OptionalAuthGuard implements CanActivate {
-  constructor(
-    private readonly jwtService: JwtService,
-    private readonly userService: UserService,
-  ) {}
-
-  async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context.switchToHttp().getRequest();
-    const authHeader = request.headers.authorization;
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      const token = authHeader.split(' ')[1];
-      try {
-        const payload = await this.jwtService.verifyAsync(token);
-        const user = await this.userService.findByID(payload.id);
-        if (user) {
-          request.user = { id: payload.id };
-          request.activeUser = user;
-        }
-      } catch (err) {
-        // Suppress validation error for optional authentication
-      }
-    }
-    return true;
-  }
-}
 
 @ApiTags('Forum')
 @ApiBearerAuth()
@@ -131,10 +102,13 @@ export class ForumController {
   @ApiOperation({ summary: 'Get post history of current user' })
   async getMyPosts(
     @RequestUser() user: User,
-    @Query('status') status?: string,
-    @Query('search') search?: string,
+    @Query() query: GetMyPostsQueryDTO,
   ) {
-    const data = await this.postService.getMyPosts(user.id, status, search);
+    const data = await this.postService.getMyPosts(
+      user.id,
+      query.status,
+      query.search,
+    );
     return generateSuccessResult(data);
   }
 
@@ -142,10 +116,10 @@ export class ForumController {
   @UseGuards(OptionalAuthGuard)
   @ApiOperation({ summary: 'Get detailed post by ID' })
   async getPostById(
-    @Param('id') id: string,
+    @Param() params: FindOnePostParamDTO,
     @RequestUser('optional') user?: User,
   ) {
-    const post = await this.postService.getPostById(id, user?.id);
+    const post = await this.postService.getPostById(params.id, user?.id);
     return generateSuccessResult(post);
   }
 
@@ -153,54 +127,41 @@ export class ForumController {
   @UseGuards(AuthGuard)
   @ApiOperation({ summary: 'Update post content' })
   async updatePost(
-    @Param('id') id: string,
+    @Param() params: FindOnePostParamDTO,
     @Body() dto: UpdatePostDTO,
     @RequestUser() user: User,
   ) {
     const isAdmin = user.role === ROLE.ADMIN;
-    const post = await this.postService.updatePost(id, dto, user.id, isAdmin);
+    const post = await this.postService.updatePost(
+      params.id,
+      dto,
+      user.id,
+      isAdmin,
+    );
     return generateSuccessResult(post);
   }
 
   @Delete('posts/:id')
   @UseGuards(AuthGuard)
   @ApiOperation({ summary: 'Soft delete a post' })
-  async softDeletePost(@Param('id') id: string, @RequestUser() user: User) {
-    const isAdmin = user.role === ROLE.ADMIN;
-    await this.postService.softDeletePost(id, user.id, isAdmin);
-    return generateSuccessResult(null, 'Post deleted successfully');
-  }
-
-  @Put('posts/:id/moderate')
-  @UseGuards(AuthGuard)
-  @ApiOperation({
-    summary: 'Moderate (approve/reject/expire) a post (Admin only)',
-  })
-  async moderatePost(
-    @Param('id') id: string,
-    @Body() dto: { status: POST_STATUS; flaggedReason?: string },
+  async softDeletePost(
+    @Param() params: FindOnePostParamDTO,
     @RequestUser() user: User,
   ) {
-    if (user.role !== ROLE.ADMIN) {
-      throw new ForbiddenException('Only administrators can moderate posts');
-    }
-    const post = await this.postService.moderatePost(
-      id,
-      dto.status,
-      dto.flaggedReason,
-    );
-    return generateSuccessResult(post, 'Post status updated successfully');
+    const isAdmin = user.role === ROLE.ADMIN;
+    await this.postService.softDeletePost(params.id, user.id, isAdmin);
+    return generateSuccessResult(null, 'Post deleted successfully');
   }
 
   @Post('posts/:id/vote')
   @UseGuards(AuthGuard)
   @ApiOperation({ summary: 'Vote (up/down/none) a post' })
   async votePost(
-    @Param('id') id: string,
+    @Param() params: FindOnePostParamDTO,
     @Body() dto: VotePostDTO,
     @RequestUser() user: User,
   ) {
-    await this.postService.votePost(id, user.id, dto.type);
+    await this.postService.votePost(params.id, user.id, dto.type);
     return generateSuccessResult(null, 'Vote updated successfully');
   }
 
@@ -208,12 +169,12 @@ export class ForumController {
   @UseGuards(OptionalAuthGuard)
   @ApiOperation({ summary: 'Get comments of a post' })
   async getComments(
-    @Param('id') id: string,
+    @Param() params: FindOnePostParamDTO,
     @Query() query: GetCommentsQueryDTO,
     @RequestUser('optional') user?: User,
   ) {
     const data = await this.commentService.getCommentsForPost(
-      id,
+      params.id,
       query,
       user?.id,
     );
@@ -238,13 +199,13 @@ export class ForumController {
   )
   @ApiOperation({ summary: 'Create comment or reply' })
   async createComment(
-    @Param('id') id: string,
+    @Param() params: FindOnePostParamDTO,
     @Body() dto: CreateCommentDTO,
     @RequestUser() user: User,
     @UploadedFile() file?: Express.Multer.File,
   ) {
     const comment = await this.commentService.createComment(
-      id,
+      params.id,
       dto,
       user.id,
       file,
@@ -256,20 +217,27 @@ export class ForumController {
   @UseGuards(AuthGuard)
   @ApiOperation({ summary: 'Update a comment' })
   async updateComment(
-    @Param('id') id: string,
+    @Param() params: FindOneCommentParamDTO,
     @Body() dto: UpdateCommentDTO,
     @RequestUser() user: User,
   ) {
-    const comment = await this.commentService.updateComment(id, dto, user.id);
+    const comment = await this.commentService.updateComment(
+      params.id,
+      dto,
+      user.id,
+    );
     return generateSuccessResult(comment);
   }
 
   @Delete('comments/:id')
   @UseGuards(AuthGuard)
   @ApiOperation({ summary: 'Soft delete a comment' })
-  async softDeleteComment(@Param('id') id: string, @RequestUser() user: User) {
+  async softDeleteComment(
+    @Param() params: FindOneCommentParamDTO,
+    @RequestUser() user: User,
+  ) {
     const isAdmin = user.role === ROLE.ADMIN;
-    await this.commentService.softDeleteComment(id, user.id, isAdmin);
+    await this.commentService.softDeleteComment(params.id, user.id, isAdmin);
     return generateSuccessResult(null, 'Comment deleted successfully');
   }
 
@@ -277,11 +245,11 @@ export class ForumController {
   @UseGuards(AuthGuard)
   @ApiOperation({ summary: 'Vote (up/down/none) a comment' })
   async voteComment(
-    @Param('id') id: string,
+    @Param() params: FindOneCommentParamDTO,
     @Body() dto: VoteCommentDTO,
     @RequestUser() user: User,
   ) {
-    await this.commentService.voteComment(id, user.id, dto.type);
+    await this.commentService.voteComment(params.id, user.id, dto.type);
     return generateSuccessResult(null, 'Vote updated successfully');
   }
 }

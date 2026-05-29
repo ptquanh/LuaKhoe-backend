@@ -6,6 +6,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
+import { AdminModule } from '@modules/admin/admin.module';
 import { AiModelModule } from '@modules/ai-model/ai-model.module';
 import { AuthModule } from '@modules/auth/auth.module';
 import { CloudinaryModule } from '@modules/cloudinary/cloudinary.module';
@@ -63,6 +64,7 @@ import configs from './configs';
     SystemConfigModule,
     GeoContextModule,
     ForumModule,
+    AdminModule,
   ],
 })
 export class AppModule {}

@@ -64,3 +64,9 @@ export class VoteCommentDTO {
   @IsEnum(VOTE_TYPE, { message: 'Vote type không hợp lệ' })
   type: VOTE_TYPE;
 }
+
+export class FindOneCommentParamDTO {
+  @ApiProperty({ description: 'The UUID of the comment' })
+  @IsUUID()
+  id: string;
+}

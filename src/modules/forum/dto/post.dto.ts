@@ -9,6 +9,7 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  IsUUID,
   Length,
   MaxLength,
   Min,
@@ -160,4 +161,22 @@ export class AiEnhancePostDTO {
   @IsNotEmpty()
   @IsString()
   content: string;
+}
+
+export class FindOnePostParamDTO {
+  @ApiProperty({ description: 'The UUID of the post' })
+  @IsUUID()
+  id: string;
+}
+
+export class GetMyPostsQueryDTO {
+  @ApiPropertyOptional({ description: 'Filter posts by status' })
+  @IsOptional()
+  @IsString()
+  status?: string;
+
+  @ApiPropertyOptional({ description: 'Search posts by keywords' })
+  @IsOptional()
+  @IsString()
+  search?: string;
 }

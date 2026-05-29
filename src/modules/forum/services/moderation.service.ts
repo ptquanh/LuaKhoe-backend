@@ -70,21 +70,45 @@ export class ModerationService {
 
     // 2. Implement chatModel (LLM Moderation) if text check passes
     try {
-      let prompt = `Evaluate this agricultural forum post for NSFW, violence, or spam/scams. Return strictly JSON: { "isSafe": boolean, "reason": "string" }.\n\nPost Content:\n"""\n${content}\n"""`;
+      let prompt = `You are an AI content moderator for a Vietnamese agricultural forum. 
+Evaluate the following post for NSFW, violence, spam, scams, or malicious content.
+
+CRITICAL INSTRUCTIONS:
+1. Return ONLY a valid JSON object. Do not wrap it in markdown tags (like \`\`\`json).
+2. If the content is NOT safe, the "reason" field MUST be explained entirely IN VIETNAMESE.
+
+JSON Schema:
+{ 
+  "isSafe": boolean, 
+  "reason": "Giải thích chi tiết bằng tiếng Việt lý do vi phạm nếu isSafe = false. Nếu an toàn, hãy để chuỗi rỗng." 
+}
+
+Post Content:
+"""
+${content}
+"""`;
+
       if (images && images.length > 0) {
-        prompt += `\n\nAttached Images:\n${images.map((url, i) => `${i + 1}. ${url}`).join('\n')}`;
+        prompt += `\n\nAttached Images URLs for context:\n${images.map((url, i) => `${i + 1}. ${url}`).join('\n')}`;
       }
 
       const response = await this.chatModel.invoke(prompt);
       const rawOutput = response.content as string;
-      const cleanJson = rawOutput.replace(/```json|```/g, '').trim();
+
+      // Cleanup fallback in case LLM still outputs markdown tags
+      const cleanJson = rawOutput
+        .replace(/```json/gi, '')
+        .replace(/```/g, '')
+        .trim();
       const result = JSON.parse(cleanJson);
 
       if (result && typeof result.isSafe === 'boolean') {
         if (!result.isSafe) {
           return {
             isSafe: false,
-            reason: result.reason || 'Bị từ chối bởi bộ lọc AI',
+            reason:
+              result.reason ||
+              'Bị từ chối bởi bộ lọc AI do vi phạm tiêu chuẩn cộng đồng.',
           };
         }
       }
