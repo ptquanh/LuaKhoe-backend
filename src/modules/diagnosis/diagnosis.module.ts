@@ -10,11 +10,9 @@ import { NutritionModule } from '@modules/nutrition/nutrition.module';
 import { SystemConfigModule } from '@modules/system-config/system-config.module';
 import { UserModule } from '@modules/user/user.module';
 
-import { DashboardController } from './dashboard.controller';
 import { DiagnosisController } from './diagnosis.controller';
 import { DiagnosisResult } from './entities/diagnosis-result.entity';
 import { Diagnosis } from './entities/diagnosis.entity';
-import { DashboardService } from './services/dashboard.service';
 import { DiagnosisResultService } from './services/diagnosis-result.service';
 import { DiagnosisService } from './services/diagnosis.service';
 
@@ -30,8 +28,8 @@ import { DiagnosisService } from './services/diagnosis.service';
     SystemConfigModule,
     GeoContextModule,
   ],
-  controllers: [DiagnosisController, DashboardController],
-  providers: [DiagnosisService, DiagnosisResultService, DashboardService],
-  exports: [DiagnosisService, DiagnosisResultService, DashboardService],
+  controllers: [DiagnosisController],
+  providers: [DiagnosisService, DiagnosisResultService],
+  exports: [DiagnosisService, DiagnosisResultService],
 })
 export class DiagnosisModule {}

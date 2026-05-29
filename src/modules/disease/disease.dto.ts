@@ -1,4 +1,10 @@
-import { IsNotEmpty, IsOptional, IsString, Length } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Length,
+} from 'class-validator';
 
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
@@ -80,4 +86,10 @@ export class UpdateDiseaseDTO {
   @IsOptional()
   @IsString()
   imageUrl?: string;
+}
+
+export class FindOneDiseaseParamDTO {
+  @ApiProperty({ description: 'The UUID of the disease' })
+  @IsUUID()
+  id: string;
 }

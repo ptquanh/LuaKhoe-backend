@@ -4,12 +4,9 @@ import {
   BadRequestException,
   Body,
   Controller,
-  Delete,
   Get,
-  Param,
   Patch,
   Put,
-  Query,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -22,20 +19,13 @@ import { StorageService, StorageType } from '@modules/storage/storage.service';
 
 import { getStorageFolder } from '@shared/constants';
 import { RequestUser } from '@shared/decorators/request-user.decorator';
-import { Roles } from '@shared/decorators/roles.decorator';
-import { ROLE } from '@shared/enums';
 import { AuthGuard } from '@shared/guards/auth.guard';
-import { RolesGuard } from '@shared/guards/roles.guard';
 import { ApplyRateLimiting } from '@shared/interceptors/rate-limiting.interceptor';
 import { UserAuthProfile } from '@shared/interfaces';
 
 import { UserProfileService } from './services/user-profile.service';
 import { UserService } from './services/user.service';
-import {
-  GetUsersAdminDTO,
-  UpdateUserProfileDTO,
-  UpdateUserStatusDTO,
-} from './user.dto';
+import { UpdateUserProfileDTO } from './user.dto';
 
 @ApiBearerAuth()
 @ApiTags('User')
@@ -48,17 +38,6 @@ export class UserController {
     private readonly storageService: StorageService,
     private readonly fileService: FileService,
   ) {}
-
-  @Get()
-  @Roles(ROLE.ADMIN)
-  @UseGuards(RolesGuard)
-  @ApiOperation({
-    summary: 'Get All Users (Admin only)',
-    description: 'Retrieve users list with diagnosis count and latest province',
-  })
-  async getUsers(@Query() dto: GetUsersAdminDTO): Promise<HttpResponse> {
-    return this.userService.getUsersForAdmin(dto);
-  }
 
   @Get(['me', 'profile'])
   @ApiOperation({
@@ -124,30 +103,5 @@ export class UserController {
       success: true,
       data: { avatarUrl },
     };
-  }
-
-  @Put(':id/status')
-  @Roles(ROLE.ADMIN)
-  @UseGuards(RolesGuard)
-  @ApiOperation({
-    summary: 'Update User Status (Admin only)',
-    description: 'Ban or unban a user with a reason',
-  })
-  async updateUserStatus(
-    @Param('id') id: string,
-    @Body() dto: UpdateUserStatusDTO,
-  ): Promise<HttpResponse> {
-    return this.userService.updateUserStatusForAdmin(id, dto);
-  }
-
-  @Delete(':id')
-  @Roles(ROLE.ADMIN)
-  @UseGuards(RolesGuard)
-  @ApiOperation({
-    summary: 'Delete User (Admin only)',
-    description: 'Permanently delete a user and all their associated data',
-  })
-  async deleteUser(@Param('id') id: string): Promise<HttpResponse> {
-    return this.userService.deleteUserForAdmin(id);
   }
 }

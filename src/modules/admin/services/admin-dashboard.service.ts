@@ -4,18 +4,17 @@ import { MoreThanOrEqual, Repository } from 'typeorm';
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 
+import { DiagnosisResult } from '@modules/diagnosis/entities/diagnosis-result.entity';
+import { Diagnosis } from '@modules/diagnosis/entities/diagnosis.entity';
 import { NutritionService } from '@modules/nutrition/nutrition.service';
 import { UserService } from '@modules/user/services/user.service';
 
 import { ROLE } from '@shared/enums';
 import { generateSuccessResult } from '@shared/helpers/operation-result.helper';
 
-import { DiagnosisResult } from '../entities/diagnosis-result.entity';
-import { Diagnosis } from '../entities/diagnosis.entity';
-
 @Injectable()
-export class DashboardService {
-  private readonly logger = new Logger(DashboardService.name);
+export class AdminDashboardService {
+  private readonly logger = new Logger(AdminDashboardService.name);
 
   constructor(
     @InjectRepository(Diagnosis)
