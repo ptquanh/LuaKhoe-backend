@@ -1,7 +1,9 @@
+import { Transform } from 'class-transformer';
 import {
   ArrayMaxSize,
   IsArray,
   IsBoolean,
+  IsEnum,
   IsIn,
   IsInt,
   IsNotEmpty,
@@ -13,6 +15,8 @@ import {
 } from 'class-validator';
 
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+
+import { POST_STATUS, VOTE_TYPE } from '@shared/enums';
 
 export class CreatePostDTO {
   @ApiProperty({
@@ -35,10 +39,20 @@ export class CreatePostDTO {
 
   @ApiPropertyOptional({ example: ['Đạo ôn', 'Kỹ thuật'] })
   @IsOptional()
+  @Transform(({ value, obj }) => {
+    const rawTags = value ?? obj['tags[]'] ?? obj['tags'];
+    if (typeof rawTags === 'string') {
+      return [rawTags];
+    }
+    if (Array.isArray(rawTags)) {
+      return rawTags;
+    }
+    return undefined;
+  })
   @IsArray()
   @IsString({ each: true })
   @ArrayMaxSize(5)
-  @MaxLength(20, { each: true })
+  @MaxLength(50, { each: true })
   tags?: string[];
 
   @ApiPropertyOptional({ example: 'Hỏi đáp' })
@@ -48,6 +62,7 @@ export class CreatePostDTO {
 
   @ApiPropertyOptional({ example: false })
   @IsOptional()
+  @Transform(({ value }) => value === 'true' || value === true)
   @IsBoolean()
   isDraft?: boolean;
 }
@@ -73,7 +88,7 @@ export class UpdatePostDTO {
   @IsArray()
   @IsString({ each: true })
   @ArrayMaxSize(5)
-  @MaxLength(20, { each: true })
+  @MaxLength(50, { each: true })
   tags?: string[];
 
   @ApiPropertyOptional({ example: 'Hỏi đáp' })
@@ -117,19 +132,20 @@ export class GetPostsQueryDTO {
   @IsString()
   category?: string;
 
-  @ApiPropertyOptional({ description: 'Filter posts by status' })
+  @ApiPropertyOptional({
+    description: 'Filter posts by status',
+    enum: POST_STATUS,
+  })
   @IsOptional()
-  @IsString()
-  @IsIn(['DRAFT', 'PENDING', 'APPROVED', 'REJECTED', 'EXPIRED'])
-  status?: string;
+  @IsEnum(POST_STATUS, { message: 'Status không hợp lệ' })
+  status?: POST_STATUS;
 }
 
 export class VotePostDTO {
-  @ApiProperty({ example: 'up', enum: ['up', 'down', 'none'] })
+  @ApiProperty({ example: VOTE_TYPE.UP, enum: VOTE_TYPE })
   @IsNotEmpty()
-  @IsString()
-  @IsIn(['up', 'down', 'none'])
-  type: 'up' | 'down' | 'none';
+  @IsEnum(VOTE_TYPE, { message: 'Vote type không hợp lệ' })
+  type: VOTE_TYPE;
 }
 
 export class AiEnhancePostDTO {

@@ -191,6 +191,8 @@ export const getStorageFolder = () => ({
   DIAGNOSES_RESULTS: `${process.env.APP_NAME}/images/upload/diagnoses-results`,
   AVATARS: `${process.env.APP_NAME}/images/upload/avatars`,
   AI_MODELS: `${process.env.APP_NAME}/files/upload/ai_models`,
+  FORUM_POSTS: `${process.env.APP_NAME}/images/upload/forum/posts`,
+  FORUM_COMMENTS: `${process.env.APP_NAME}/images/upload/forum/comments`,
 });
 
 export enum DISEASE_STATUS {
@@ -203,3 +205,16 @@ export enum FEEDBACK_STATUS {
   ACCEPTED = 'accepted',
   REJECTED = 'rejected',
 }
+
+export const VOTE_CONFIG = {
+  POST: {
+    targetName: 'Post',
+    voteRelationField: 'postId',
+    updateScore: true,
+  },
+  COMMENT: {
+    targetName: 'Comment',
+    voteRelationField: 'commentId',
+    updateScore: false,
+  },
+} as const;

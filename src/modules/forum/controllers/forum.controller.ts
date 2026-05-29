@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   CanActivate,
   Controller,
@@ -11,9 +12,13 @@ import {
   Post,
   Put,
   Query,
+  UploadedFile,
+  UploadedFiles,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { User } from '@modules/user/entities/user.entity';
@@ -101,9 +106,23 @@ export class ForumController {
 
   @Post('posts')
   @UseGuards(AuthGuard)
+  @UseInterceptors(
+    FilesInterceptor('images', 5, {
+      limits: { fileSize: 5 * 1024 * 1024 },
+    }),
+  )
   @ApiOperation({ summary: 'Create a new forum post' })
-  async createPost(@Body() dto: CreatePostDTO, @RequestUser() user: User) {
-    const post = await this.postService.createPost(dto, user.id);
+  async createPost(
+    @Body() dto: CreatePostDTO,
+    @RequestUser() user: User,
+    @UploadedFiles() files?: Express.Multer.File[],
+  ) {
+    const post = await this.postService.createPost(
+      dto,
+      user.id,
+      user.role,
+      files,
+    );
     return generateSuccessResult(post);
   }
 
@@ -203,13 +222,33 @@ export class ForumController {
 
   @Post('posts/:id/comments')
   @UseGuards(AuthGuard)
+  @UseInterceptors(
+    FileInterceptor('image', {
+      limits: { fileSize: 5 * 1024 * 1024 },
+      fileFilter: (req, file, cb) => {
+        if (!file.mimetype.match(/\/(jpg|jpeg|png|webp)$/)) {
+          return cb(
+            new BadRequestException('Chỉ chấp nhận định dạng ảnh hợp lệ!'),
+            false,
+          );
+        }
+        cb(null, true);
+      },
+    }),
+  )
   @ApiOperation({ summary: 'Create comment or reply' })
   async createComment(
     @Param('id') id: string,
     @Body() dto: CreateCommentDTO,
     @RequestUser() user: User,
+    @UploadedFile() file?: Express.Multer.File,
   ) {
-    const comment = await this.commentService.createComment(id, dto, user.id);
+    const comment = await this.commentService.createComment(
+      id,
+      dto,
+      user.id,
+      file,
+    );
     return generateSuccessResult(comment);
   }
 

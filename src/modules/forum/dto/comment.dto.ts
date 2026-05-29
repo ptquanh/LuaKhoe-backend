@@ -1,5 +1,18 @@
-import { IsIn, IsInt, IsNotEmpty, IsOptional, IsString, IsUUID, Length, Min } from 'class-validator';
+import { Transform } from 'class-transformer';
+import {
+  IsEnum,
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Length,
+  Min,
+} from 'class-validator';
+
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+
+import { VOTE_TYPE } from '@shared/enums';
 
 export class CreateCommentDTO {
   @ApiProperty({
@@ -13,6 +26,11 @@ export class CreateCommentDTO {
 
   @ApiPropertyOptional({ example: 'a0b1c2d3-e4f5-6789-0123-456789abcdef' })
   @IsOptional()
+  @Transform(({ value }) =>
+    value === '' || value === 'null' || value === 'undefined'
+      ? undefined
+      : value,
+  )
   @IsUUID()
   parentId?: string;
 }
@@ -41,9 +59,8 @@ export class GetCommentsQueryDTO {
 }
 
 export class VoteCommentDTO {
-  @ApiProperty({ example: 'up', enum: ['up', 'down', 'none'] })
+  @ApiProperty({ example: VOTE_TYPE.UP, enum: VOTE_TYPE })
   @IsNotEmpty()
-  @IsString()
-  @IsIn(['up', 'down', 'none'])
-  type: 'up' | 'down' | 'none';
+  @IsEnum(VOTE_TYPE, { message: 'Vote type không hợp lệ' })
+  type: VOTE_TYPE;
 }

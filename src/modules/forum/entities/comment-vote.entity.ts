@@ -9,6 +9,8 @@ import {
 
 import { User } from '@modules/user/entities/user.entity';
 
+import { VOTE_TYPE } from '@shared/enums';
+
 import { Comment } from './comment.entity';
 
 @Entity('comment_votes')
@@ -24,7 +26,7 @@ export class CommentVote {
   userId: string;
 
   @Column({ type: 'varchar', length: 10 })
-  type: 'up' | 'down';
+  type: VOTE_TYPE;
 
   @ManyToOne(() => Comment, (comment) => comment.votes, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'comment_id' })

@@ -1,11 +1,18 @@
 import { DataSource, EntityManager, Repository } from 'typeorm';
 
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+
+import { StorageService } from '@modules/storage/storage.service';
+
+import { VOTE_CONFIG, getStorageFolder } from '@shared/constants';
+import { VOTE_TYPE } from '@shared/enums';
+import { handleVote } from '@shared/helpers/vote-handler.helper';
 
 import {
   CreateCommentDTO,
@@ -15,6 +22,7 @@ import {
 import { CommentVote } from '../entities/comment-vote.entity';
 import { Comment } from '../entities/comment.entity';
 import { Post } from '../entities/post.entity';
+import { ModerationService } from './moderation.service';
 
 @Injectable()
 export class CommentService {
@@ -22,12 +30,15 @@ export class CommentService {
     @InjectRepository(Comment)
     private readonly commentRepository: Repository<Comment>,
     private readonly dataSource: DataSource,
+    private readonly storageService: StorageService,
+    private readonly moderationService: ModerationService,
   ) {}
 
   async createComment(
     postId: string,
     dto: CreateCommentDTO,
     authorId: string,
+    file?: Express.Multer.File,
   ): Promise<Comment> {
     return this.dataSource.transaction(async (manager) => {
       const post = await manager.findOne(Post, { where: { id: postId } });
@@ -44,11 +55,40 @@ export class CommentService {
         }
       }
 
+      // Handle image upload
+      let imageUrl: string | null = null;
+      if (file) {
+        imageUrl = await this.storageService.uploadFile(
+          file,
+          getStorageFolder().FORUM_COMMENTS,
+        );
+      }
+
+      // Run Multimodal Moderation if content or image exists
+      if (imageUrl || dto.content) {
+        const moderationResult =
+          await this.moderationService.moderatePostContent(
+            dto.content,
+            imageUrl ? [imageUrl] : [],
+          );
+        if (!moderationResult.isSafe) {
+          // Storage Rollback: delete uploaded file if moderation fails
+          if (imageUrl) {
+            await this.storageService.deleteFile(imageUrl);
+          }
+          throw new BadRequestException(
+            moderationResult.reason ||
+              'Nội dung hoặc hình ảnh bình luận vi phạm chính sách cộng đồng!',
+          );
+        }
+      }
+
       const comment = manager.create(Comment, {
         postId,
         authorId,
         parentId: dto.parentId || null,
         content: dto.content,
+        imageUrl,
       });
 
       const savedComment = await manager.save(comment);
@@ -191,57 +231,18 @@ export class CommentService {
   async voteComment(
     commentId: string,
     userId: string,
-    type: 'up' | 'down' | 'none',
+    type: VOTE_TYPE,
   ): Promise<void> {
     await this.dataSource.transaction(async (manager) => {
-      const comment = await manager.findOne(Comment, {
-        where: { id: commentId },
+      await handleVote({
+        manager,
+        userId,
+        type,
+        targetEntityClass: Comment,
+        targetId: commentId,
+        voteEntityClass: CommentVote,
+        ...VOTE_CONFIG.COMMENT,
       });
-      if (!comment) {
-        throw new NotFoundException('Comment not found');
-      }
-
-      const existingVote = await manager.findOne(CommentVote, {
-        where: { commentId, userId },
-      });
-
-      if (existingVote) {
-        if (type === 'none' || existingVote.type === type) {
-          // HỦY VOTE
-          await manager.remove(existingVote);
-          if (existingVote.type === 'up') {
-            await manager.decrement(Comment, { id: commentId }, 'upvotes', 1);
-          } else {
-            await manager.decrement(Comment, { id: commentId }, 'downvotes', 1);
-          }
-        } else {
-          // ĐỔI VOTE
-          existingVote.type = type;
-          await manager.save(existingVote);
-          if (type === 'up') {
-            await manager.increment(Comment, { id: commentId }, 'upvotes', 1);
-            await manager.decrement(Comment, { id: commentId }, 'downvotes', 1);
-          } else {
-            await manager.decrement(Comment, { id: commentId }, 'upvotes', 1);
-            await manager.increment(Comment, { id: commentId }, 'downvotes', 1);
-          }
-        }
-      } else {
-        // VOTE MỚI
-        if (type !== 'none') {
-          const newVote = manager.create(CommentVote, {
-            commentId,
-            userId,
-            type,
-          });
-          await manager.save(newVote);
-          if (type === 'up') {
-            await manager.increment(Comment, { id: commentId }, 'upvotes', 1);
-          } else {
-            await manager.increment(Comment, { id: commentId }, 'downvotes', 1);
-          }
-        }
-      }
     });
   }
 

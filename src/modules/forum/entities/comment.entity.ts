@@ -40,6 +40,9 @@ export class Comment extends AuditWithTimezone {
   @Column({ type: 'integer', default: 0 })
   downvotes: number;
 
+  @Column({ name: 'image_url', type: 'varchar', nullable: true })
+  imageUrl: string | null;
+
   @ManyToOne(() => Post, (post) => post.comments, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'post_id' })
   post: Post;

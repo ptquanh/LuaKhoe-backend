@@ -10,3 +10,9 @@ export enum POST_STATUS {
   REJECTED = 'REJECTED',
   EXPIRED = 'EXPIRED',
 }
+
+export enum VOTE_TYPE {
+  UP = 'UP',
+  DOWN = 'DOWN',
+  NONE = 'NONE',
+}

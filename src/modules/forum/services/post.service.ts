@@ -10,11 +10,13 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 
+import { StorageService } from '@modules/storage/storage.service';
 import { FarmerProfile } from '@modules/user/entities/farmer-profile.entity';
 import { User } from '@modules/user/entities/user.entity';
 
-import { ENV_KEY } from '@shared/constants';
-import { POST_STATUS, ROLE } from '@shared/enums';
+import { ENV_KEY, VOTE_CONFIG, getStorageFolder } from '@shared/constants';
+import { POST_STATUS, ROLE, VOTE_TYPE } from '@shared/enums';
+import { handleVote } from '@shared/helpers/vote-handler.helper';
 
 import {
   CreatePostDTO,
@@ -36,6 +38,7 @@ export class PostService implements OnModuleInit {
     private readonly dataSource: DataSource,
     private readonly configService: ConfigService,
     private readonly moderationService: ModerationService,
+    private readonly storageService: StorageService,
   ) {}
 
   onModuleInit() {
@@ -120,11 +123,26 @@ Output STRICTLY as a JSON object:
     dto: CreatePostDTO,
     authorId: string,
     userRole: ROLE = ROLE.FARMER,
+    files?: Express.Multer.File[],
   ): Promise<Post> {
     const isAdmin = userRole === ROLE.ADMIN;
     let status = POST_STATUS.APPROVED;
     let flaggedReason: string | null = null;
     let isAdminPost = false;
+
+    // Handle image uploads if files exist
+    const uploadedImages: string[] = [];
+    if (files && files.length > 0) {
+      for (const file of files) {
+        const url = await this.storageService.uploadFile(
+          file,
+          getStorageFolder().FORUM_POSTS,
+        );
+        uploadedImages.push(url);
+      }
+    }
+    const postImages =
+      uploadedImages.length > 0 ? uploadedImages : dto.images || [];
 
     if (dto.isDraft === true) {
       status = POST_STATUS.DRAFT;
@@ -134,7 +152,7 @@ Output STRICTLY as a JSON object:
     } else {
       const moderationResult = await this.moderationService.moderatePostContent(
         dto.content,
-        dto.images,
+        postImages,
       );
       if (!moderationResult.isSafe) {
         status = POST_STATUS.REJECTED;
@@ -147,7 +165,7 @@ Output STRICTLY as a JSON object:
     const post = this.postRepository.create({
       authorId,
       content: dto.content,
-      images: dto.images || [],
+      images: postImages,
       tags: dto.tags || [],
       category: dto.category || 'Thảo luận chung',
       status,
@@ -498,55 +516,18 @@ Output STRICTLY as a JSON object:
   async votePost(
     postId: string,
     userId: string,
-    type: 'up' | 'down' | 'none',
+    type: VOTE_TYPE,
   ): Promise<void> {
     await this.dataSource.transaction(async (manager) => {
-      const post = await manager.findOne(Post, { where: { id: postId } });
-      if (!post) {
-        throw new NotFoundException('Post not found');
-      }
-
-      const existingVote = await manager.findOne(PostVote, {
-        where: { postId, userId },
+      await handleVote({
+        manager,
+        userId,
+        type,
+        targetEntityClass: Post,
+        targetId: postId,
+        voteEntityClass: PostVote,
+        ...VOTE_CONFIG.POST,
       });
-
-      if (existingVote) {
-        if (type === 'none' || existingVote.type === type) {
-          // HỦY VOTE
-          await manager.remove(existingVote);
-          if (existingVote.type === 'up') {
-            await manager.decrement(Post, { id: postId }, 'upvotes', 1);
-            await manager.decrement(Post, { id: postId }, 'score', 1);
-          } else {
-            await manager.decrement(Post, { id: postId }, 'downvotes', 1);
-          }
-        } else {
-          // ĐỔI VOTE
-          existingVote.type = type;
-          await manager.save(existingVote);
-          if (type === 'up') {
-            await manager.increment(Post, { id: postId }, 'upvotes', 1);
-            await manager.increment(Post, { id: postId }, 'score', 1);
-            await manager.decrement(Post, { id: postId }, 'downvotes', 1);
-          } else {
-            await manager.decrement(Post, { id: postId }, 'upvotes', 1);
-            await manager.decrement(Post, { id: postId }, 'score', 1);
-            await manager.increment(Post, { id: postId }, 'downvotes', 1);
-          }
-        }
-      } else {
-        // VOTE MỚI
-        if (type !== 'none') {
-          const newVote = manager.create(PostVote, { postId, userId, type });
-          await manager.save(newVote);
-          if (type === 'up') {
-            await manager.increment(Post, { id: postId }, 'upvotes', 1);
-            await manager.increment(Post, { id: postId }, 'score', 1);
-          } else {
-            await manager.increment(Post, { id: postId }, 'downvotes', 1);
-          }
-        }
-      }
     });
   }
 
