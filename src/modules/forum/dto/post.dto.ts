@@ -1,4 +1,17 @@
-import { ArrayMaxSize, IsArray, IsIn, IsInt, IsNotEmpty, IsOptional, IsString, Length, MaxLength, Min } from 'class-validator';
+import {
+  ArrayMaxSize,
+  IsArray,
+  IsBoolean,
+  IsIn,
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  Length,
+  MaxLength,
+  Min,
+} from 'class-validator';
+
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreatePostDTO {
@@ -27,6 +40,16 @@ export class CreatePostDTO {
   @ArrayMaxSize(5)
   @MaxLength(20, { each: true })
   tags?: string[];
+
+  @ApiPropertyOptional({ example: 'Hỏi đáp' })
+  @IsOptional()
+  @IsString()
+  category?: string;
+
+  @ApiPropertyOptional({ example: false })
+  @IsOptional()
+  @IsBoolean()
+  isDraft?: boolean;
 }
 
 export class UpdatePostDTO {
@@ -52,6 +75,16 @@ export class UpdatePostDTO {
   @ArrayMaxSize(5)
   @MaxLength(20, { each: true })
   tags?: string[];
+
+  @ApiPropertyOptional({ example: 'Hỏi đáp' })
+  @IsOptional()
+  @IsString()
+  category?: string;
+
+  @ApiPropertyOptional({ example: false })
+  @IsOptional()
+  @IsBoolean()
+  isDraft?: boolean;
 }
 
 export class GetPostsQueryDTO {
@@ -78,6 +111,17 @@ export class GetPostsQueryDTO {
   @IsOptional()
   @IsString()
   tag?: string;
+
+  @ApiPropertyOptional({ description: 'Filter posts by category' })
+  @IsOptional()
+  @IsString()
+  category?: string;
+
+  @ApiPropertyOptional({ description: 'Filter posts by status' })
+  @IsOptional()
+  @IsString()
+  @IsIn(['DRAFT', 'PENDING', 'APPROVED', 'REJECTED', 'EXPIRED'])
+  status?: string;
 }
 
 export class VotePostDTO {
@@ -86,4 +130,11 @@ export class VotePostDTO {
   @IsString()
   @IsIn(['up', 'down', 'none'])
   type: 'up' | 'down' | 'none';
+}
+
+export class AiEnhancePostDTO {
+  @ApiProperty({ example: 'Lúa nhà tôi bị vàng lá nhẹ ở phần ngọn...' })
+  @IsNotEmpty()
+  @IsString()
+  content: string;
 }

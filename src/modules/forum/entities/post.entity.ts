@@ -11,6 +11,7 @@ import {
 import { User } from '@modules/user/entities/user.entity';
 
 import { AuditWithTimezone } from '@shared/common/audit.entity';
+import { POST_STATUS } from '@shared/enums';
 
 import { Comment } from './comment.entity';
 import { PostVote } from './post-vote.entity';
@@ -45,6 +46,22 @@ export class Post extends AuditWithTimezone {
   @Column({ type: 'integer', default: 0 })
   @Index()
   score: number;
+
+  @Column({
+    type: 'enum',
+    enum: POST_STATUS,
+    default: POST_STATUS.PENDING,
+  })
+  status: POST_STATUS;
+
+  @Column({ type: 'varchar', nullable: true })
+  category: string;
+
+  @Column({ name: 'flagged_reason', type: 'text', nullable: true })
+  flaggedReason: string;
+
+  @Column({ name: 'is_admin_post', type: 'boolean', default: false })
+  isAdminPost: boolean;
 
   @ManyToOne(() => User)
   @JoinColumn({ name: 'author_id' })

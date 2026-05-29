@@ -60,6 +60,16 @@ export class SystemConfigService
         value: '50',
         description: 'Limit of diagnosis requests allowed per farmer per day',
       },
+      {
+        key: SYSTEM_CONFIG_KEY.POST_EXPIRE_DAYS,
+        value: '7',
+        description: 'Number of days before pending posts expire',
+      },
+      {
+        key: SYSTEM_CONFIG_KEY.BANNED_WORDS,
+        value: JSON.stringify(['chửi thề', 'thuốc giả', 'lừa đảo']),
+        description: 'List of banned keywords on the forum (JSON array)',
+      },
     ];
 
     for (const item of defaults) {

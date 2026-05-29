@@ -1,14 +1,20 @@
+import { ChatGroq } from '@langchain/groq';
 import { DataSource, Repository } from 'typeorm';
 
 import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  OnModuleInit,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 
 import { FarmerProfile } from '@modules/user/entities/farmer-profile.entity';
 import { User } from '@modules/user/entities/user.entity';
+
+import { ENV_KEY } from '@shared/constants';
+import { POST_STATUS, ROLE } from '@shared/enums';
 
 import {
   CreatePostDTO,
@@ -18,26 +24,144 @@ import {
 import { Comment } from '../entities/comment.entity';
 import { PostVote } from '../entities/post-vote.entity';
 import { Post } from '../entities/post.entity';
+import { ModerationService } from './moderation.service';
 
 @Injectable()
-export class PostService {
+export class PostService implements OnModuleInit {
+  private chatModel: ChatGroq;
+
   constructor(
     @InjectRepository(Post)
     private readonly postRepository: Repository<Post>,
     private readonly dataSource: DataSource,
+    private readonly configService: ConfigService,
+    private readonly moderationService: ModerationService,
   ) {}
 
-  async createPost(dto: CreatePostDTO, authorId: string): Promise<Post> {
+  onModuleInit() {
+    const groqApiKey = this.configService.get<string>(ENV_KEY.GROQ_API_KEY);
+    const groqModel = this.configService.get<string>(ENV_KEY.GROQ_MODEL_NAME);
+
+    this.chatModel = new ChatGroq({
+      apiKey: groqApiKey,
+      model: groqModel,
+      temperature: 0.4,
+      maxTokens: 4096,
+      maxRetries: 3,
+    });
+  }
+
+  async aiEnhanceContent(content: string) {
+    const systemPrompt = `You are a strict editorial assistant for a RICE FARMING (Trồng lúa) forum.
+The user will provide a raw, often misspelled draft.
+
+Your tasks:
+1. Fix spelling and agricultural terminology based on RICE context. Example: "đáo ồn" means "bệnh đạo ôn" (Rice blast).
+2. Expand the draft into a polite, clear forum post asking the community for help.
+3. CRITICAL RULES:
+   - CONTEXT IS RICE (Cây lúa). Do not mention peach trees or other plants.
+   - DO NOT answer the question or provide treatments.
+   - DO NOT invent fake symptoms.
+   - KEEP IT SHORT (maximum 2-3 sentences).
+4. Suggest 3-5 relevant tags. 
+   - TAG FORMAT RULE: Output tags as natural Vietnamese phrases with spaces, capitalized first letter, NO '#' symbol. Example: ["Bệnh đạo ôn", "Kinh nghiệm trồng lúa", "Phân bón"].
+5. Categorize strictly into ONE of these: ['Hỏi đáp', 'Kinh nghiệm', 'Thảo luận chung'].
+
+Output STRICTLY as a JSON object:
+{
+  "enhancedContent": "string",
+  "hashtags": ["string"],
+  "category": "string"
+}`;
+
+    try {
+      const response = await this.chatModel.invoke([
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: content },
+      ]);
+
+      const rawOutput = response.content as string;
+      const cleanJson = rawOutput.replace(/```json|```/g, '').trim();
+
+      const parsedData = JSON.parse(cleanJson);
+
+      // BỘ LỌC CODE: Chuẩn hóa mảng hashtags thành tiếng Việt tự nhiên
+      if (parsedData.hashtags && Array.isArray(parsedData.hashtags)) {
+        parsedData.hashtags = parsedData.hashtags
+          .map((tag: string) => {
+            // Xóa mọi ký tự # thừa thãi và khoảng trắng đầu/cuối, chuẩn hóa khoảng trắng giữa các từ
+            const cleanString = tag
+              .replace(/#/g, '')
+              .trim()
+              .replace(/\s+/g, ' ');
+            if (cleanString.length > 0) {
+              // Viết hoa chữ cái đầu tiên cho đẹp tự nhiên (VD: "bạc lá" -> "Bạc lá")
+              return (
+                cleanString.charAt(0).toUpperCase() +
+                cleanString.slice(1).toLowerCase()
+              );
+            }
+            return '';
+          })
+          .filter((t: string) => t.length > 0);
+      }
+
+      return parsedData;
+    } catch (err) {
+      return {
+        enhancedContent: content,
+        hashtags: ['Lúa Khỏe', 'Nông nghiệp'],
+        category: 'Thảo luận chung',
+      };
+    }
+  }
+
+  async createPost(
+    dto: CreatePostDTO,
+    authorId: string,
+    userRole: ROLE = ROLE.FARMER,
+  ): Promise<Post> {
+    const isAdmin = userRole === ROLE.ADMIN;
+    let status = POST_STATUS.APPROVED;
+    let flaggedReason: string | null = null;
+    let isAdminPost = false;
+
+    if (dto.isDraft === true) {
+      status = POST_STATUS.DRAFT;
+    } else if (isAdmin) {
+      status = POST_STATUS.APPROVED;
+      isAdminPost = true;
+    } else {
+      const moderationResult = await this.moderationService.moderatePostContent(
+        dto.content,
+        dto.images,
+      );
+      if (!moderationResult.isSafe) {
+        status = POST_STATUS.REJECTED;
+        flaggedReason = moderationResult.reason || 'Bị từ chối tự động';
+      } else {
+        status = POST_STATUS.PENDING;
+      }
+    }
+
     const post = this.postRepository.create({
       authorId,
       content: dto.content,
       images: dto.images || [],
       tags: dto.tags || [],
+      category: dto.category || 'Thảo luận chung',
+      status,
+      flaggedReason,
+      isAdminPost,
     });
     return this.postRepository.save(post);
   }
 
-  async getPostsFeed(query: GetPostsQueryDTO, currentUserId?: string) {
+  async getPostsFeed(
+    query: GetPostsQueryDTO,
+    currentUserId?: string,
+    userRole?: ROLE,
+  ) {
     const limit = query.limit || 10;
     const sort = query.sort || 'new';
 
@@ -46,6 +170,25 @@ export class PostService {
       .leftJoinAndSelect('post.author', 'author')
       .leftJoinAndSelect('author.farmerProfile', 'farmerProfile')
       .leftJoinAndSelect('author.adminProfile', 'adminProfile');
+
+    // Filter by status (strict security check to prevent unapproved posts leakage to farmers)
+    const isAdmin = userRole === ROLE.ADMIN;
+    if (isAdmin && query.status) {
+      queryBuilder.andWhere('post.status = :statusFilter', {
+        statusFilter: query.status,
+      });
+    } else {
+      queryBuilder.andWhere('post.status = :statusFilter', {
+        statusFilter: POST_STATUS.APPROVED,
+      });
+    }
+
+    // Filter by category
+    if (query.category) {
+      queryBuilder.andWhere('post.category = :categoryFilter', {
+        categoryFilter: query.category,
+      });
+    }
 
     // Filter by tag if provided (tags is JSONB array)
     if (query.tag) {
@@ -323,6 +466,31 @@ export class PostService {
     if (dto.content !== undefined) post.content = dto.content;
     if (dto.images !== undefined) post.images = dto.images;
     if (dto.tags !== undefined) post.tags = dto.tags;
+    if (dto.category !== undefined) post.category = dto.category;
+
+    // Security Draft Publication Moderation Check
+    if (post.status === POST_STATUS.DRAFT && dto.isDraft === false) {
+      if (isAdmin) {
+        post.status = POST_STATUS.APPROVED;
+        post.isAdminPost = true;
+        post.flaggedReason = null;
+      } else {
+        const moderationResult =
+          await this.moderationService.moderatePostContent(
+            post.content,
+            post.images,
+          );
+        if (!moderationResult.isSafe) {
+          post.status = POST_STATUS.REJECTED;
+          post.flaggedReason = moderationResult.reason || 'Bị từ chối tự động';
+        } else {
+          post.status = POST_STATUS.PENDING;
+          post.flaggedReason = null;
+        }
+      }
+    } else if (dto.isDraft === true) {
+      post.status = POST_STATUS.DRAFT;
+    }
 
     return this.postRepository.save(post);
   }
@@ -411,5 +579,49 @@ export class PostService {
         .andWhere('deletedAt IS NULL')
         .execute();
     });
+  }
+
+  async moderatePost(
+    postId: string,
+    status: POST_STATUS,
+    flaggedReason?: string,
+  ): Promise<Post> {
+    const post = await this.postRepository.findOne({ where: { id: postId } });
+    if (!post) {
+      throw new NotFoundException('Post not found');
+    }
+    post.status = status;
+    if (flaggedReason !== undefined) {
+      post.flaggedReason = flaggedReason;
+    }
+    return this.postRepository.save(post);
+  }
+
+  async getMyPosts(
+    userId: string,
+    status?: string,
+    search?: string,
+  ): Promise<Post[]> {
+    const queryBuilder = this.postRepository
+      .createQueryBuilder('post')
+      .leftJoinAndSelect('post.author', 'author')
+      .leftJoinAndSelect('author.farmerProfile', 'farmerProfile')
+      .leftJoinAndSelect('author.adminProfile', 'adminProfile')
+      .where('post.authorId = :userId', { userId });
+
+    if (status) {
+      queryBuilder.andWhere('post.status = :status', { status });
+    }
+
+    if (search) {
+      queryBuilder.andWhere(
+        '(LOWER(post.content) LIKE LOWER(:search) OR LOWER(post.category) LIKE LOWER(:search))',
+        { search: `%${search}%` },
+      );
+    }
+
+    queryBuilder.orderBy('post.createdAt', 'DESC');
+
+    return queryBuilder.getMany();
   }
 }

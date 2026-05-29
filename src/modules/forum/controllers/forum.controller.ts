@@ -4,6 +4,7 @@ import {
   Controller,
   Delete,
   ExecutionContext,
+  ForbiddenException,
   Get,
   Injectable,
   Param,
@@ -19,7 +20,7 @@ import { User } from '@modules/user/entities/user.entity';
 import { UserService } from '@modules/user/services/user.service';
 
 import { RequestUser } from '@shared/decorators/request-user.decorator';
-import { ROLE } from '@shared/enums';
+import { POST_STATUS, ROLE } from '@shared/enums';
 import { AuthGuard } from '@shared/guards/auth.guard';
 import { generateSuccessResult } from '@shared/helpers/operation-result.helper';
 
@@ -30,6 +31,7 @@ import {
   VoteCommentDTO,
 } from '../dto/comment.dto';
 import {
+  AiEnhancePostDTO,
   CreatePostDTO,
   GetPostsQueryDTO,
   UpdatePostDTO,
@@ -81,8 +83,20 @@ export class ForumController {
     @Query() query: GetPostsQueryDTO,
     @RequestUser('optional') user?: User,
   ) {
-    const data = await this.postService.getPostsFeed(query, user?.id);
+    const data = await this.postService.getPostsFeed(
+      query,
+      user?.id,
+      user?.role,
+    );
     return generateSuccessResult(data);
+  }
+
+  @Post('posts/ai-enhance')
+  @UseGuards(AuthGuard)
+  @ApiOperation({ summary: 'AI Polish draft post content' })
+  async aiEnhanceContent(@Body() dto: AiEnhancePostDTO) {
+    const result = await this.postService.aiEnhanceContent(dto.content);
+    return generateSuccessResult(result);
   }
 
   @Post('posts')
@@ -91,6 +105,18 @@ export class ForumController {
   async createPost(@Body() dto: CreatePostDTO, @RequestUser() user: User) {
     const post = await this.postService.createPost(dto, user.id);
     return generateSuccessResult(post);
+  }
+
+  @Get('posts/my-posts')
+  @UseGuards(AuthGuard)
+  @ApiOperation({ summary: 'Get post history of current user' })
+  async getMyPosts(
+    @RequestUser() user: User,
+    @Query('status') status?: string,
+    @Query('search') search?: string,
+  ) {
+    const data = await this.postService.getMyPosts(user.id, status, search);
+    return generateSuccessResult(data);
   }
 
   @Get('posts/:id')
@@ -124,6 +150,27 @@ export class ForumController {
     const isAdmin = user.role === ROLE.ADMIN;
     await this.postService.softDeletePost(id, user.id, isAdmin);
     return generateSuccessResult(null, 'Post deleted successfully');
+  }
+
+  @Put('posts/:id/moderate')
+  @UseGuards(AuthGuard)
+  @ApiOperation({
+    summary: 'Moderate (approve/reject/expire) a post (Admin only)',
+  })
+  async moderatePost(
+    @Param('id') id: string,
+    @Body() dto: { status: POST_STATUS; flaggedReason?: string },
+    @RequestUser() user: User,
+  ) {
+    if (user.role !== ROLE.ADMIN) {
+      throw new ForbiddenException('Only administrators can moderate posts');
+    }
+    const post = await this.postService.moderatePost(
+      id,
+      dto.status,
+      dto.flaggedReason,
+    );
+    return generateSuccessResult(post, 'Post status updated successfully');
   }
 
   @Post('posts/:id/vote')
