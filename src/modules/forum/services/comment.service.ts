@@ -10,7 +10,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 
 import { StorageService } from '@modules/storage/storage.service';
 
-import { VOTE_CONFIG, getStorageFolder } from '@shared/constants';
+import { ERR_CODE, VOTE_CONFIG, getStorageFolder } from '@shared/constants';
 import { VOTE_TYPE } from '@shared/enums';
 import { handleVote } from '@shared/helpers/vote-handler.helper';
 
@@ -76,10 +76,14 @@ export class CommentService {
           if (imageUrl) {
             await this.storageService.deleteFile(imageUrl);
           }
-          throw new BadRequestException(
-            moderationResult.reason ||
+          const exception = new BadRequestException({
+            errorCode: ERR_CODE.CONTENT_POLICY_VIOLATION,
+            message:
+              moderationResult.reason ||
               'Nội dung hoặc hình ảnh bình luận vi phạm chính sách cộng đồng!',
-          );
+          });
+          (exception as any).code = ERR_CODE.CONTENT_POLICY_VIOLATION;
+          throw exception;
         }
       }
 

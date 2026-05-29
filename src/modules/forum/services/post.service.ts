@@ -8,13 +8,19 @@ import {
   OnModuleInit,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 
 import { StorageService } from '@modules/storage/storage.service';
 import { FarmerProfile } from '@modules/user/entities/farmer-profile.entity';
 import { User } from '@modules/user/entities/user.entity';
 
-import { ENV_KEY, VOTE_CONFIG, getStorageFolder } from '@shared/constants';
+import {
+  ENV_KEY,
+  EVENT_KEYS,
+  VOTE_CONFIG,
+  getStorageFolder,
+} from '@shared/constants';
 import { POST_STATUS, ROLE, VOTE_TYPE } from '@shared/enums';
 import { handleVote } from '@shared/helpers/vote-handler.helper';
 
@@ -39,6 +45,7 @@ export class PostService implements OnModuleInit {
     private readonly configService: ConfigService,
     private readonly moderationService: ModerationService,
     private readonly storageService: StorageService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   onModuleInit() {
@@ -144,22 +151,15 @@ Output STRICTLY as a JSON object:
     const postImages =
       uploadedImages.length > 0 ? uploadedImages : dto.images || [];
 
-    if (dto.isDraft === true) {
+    const isDraft = dto.isDraft === true;
+
+    if (isDraft) {
       status = POST_STATUS.DRAFT;
     } else if (isAdmin) {
       status = POST_STATUS.APPROVED;
       isAdminPost = true;
     } else {
-      const moderationResult = await this.moderationService.moderatePostContent(
-        dto.content,
-        postImages,
-      );
-      if (!moderationResult.isSafe) {
-        status = POST_STATUS.REJECTED;
-        flaggedReason = moderationResult.reason || 'Bị từ chối tự động';
-      } else {
-        status = POST_STATUS.PENDING;
-      }
+      status = POST_STATUS.PENDING;
     }
 
     const post = this.postRepository.create({
@@ -172,7 +172,14 @@ Output STRICTLY as a JSON object:
       flaggedReason,
       isAdminPost,
     });
-    return this.postRepository.save(post);
+
+    const savedPost = await this.postRepository.save(post);
+
+    if (!isDraft && !isAdmin) {
+      this.eventEmitter.emit(EVENT_KEYS.POST_CREATED, { postId: savedPost.id });
+    }
+
+    return savedPost;
   }
 
   async getPostsFeed(
@@ -486,8 +493,11 @@ Output STRICTLY as a JSON object:
     if (dto.tags !== undefined) post.tags = dto.tags;
     if (dto.category !== undefined) post.category = dto.category;
 
+    const isDraftVal =
+      dto.isDraft === undefined ? undefined : dto.isDraft === true;
+
     // Security Draft Publication Moderation Check
-    if (post.status === POST_STATUS.DRAFT && dto.isDraft === false) {
+    if (post.status === POST_STATUS.DRAFT && isDraftVal === false) {
       if (isAdmin) {
         post.status = POST_STATUS.APPROVED;
         post.isAdminPost = true;
@@ -506,7 +516,7 @@ Output STRICTLY as a JSON object:
           post.flaggedReason = null;
         }
       }
-    } else if (dto.isDraft === true) {
+    } else if (isDraftVal === true) {
       post.status = POST_STATUS.DRAFT;
     }
 
@@ -572,6 +582,12 @@ Output STRICTLY as a JSON object:
       throw new NotFoundException('Post not found');
     }
     post.status = status;
+    if (status === POST_STATUS.REJECTED) {
+      post.rejectedBy = ROLE.ADMIN;
+    } else if (status === POST_STATUS.APPROVED) {
+      post.rejectedBy = null;
+    }
+
     if (flaggedReason !== undefined) {
       post.flaggedReason = flaggedReason;
     }

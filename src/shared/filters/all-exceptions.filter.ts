@@ -68,12 +68,16 @@ export class AllExceptionsFilter implements ExceptionFilter {
       );
     }
 
+    const errorCode =
+      exception instanceof HttpException &&
+      typeof message === 'object' &&
+      message !== null
+        ? (message as any).errorCode || (exception as any).code
+        : (exception as any)?.code;
+
     response.status(status).json({
       success: false,
-      code:
-        exception instanceof HttpException
-          ? (exception as any).code || ERR_CODE.INTERNAL_SERVER_ERROR
-          : ERR_CODE.INTERNAL_SERVER_ERROR,
+      code: errorCode || ERR_CODE.INTERNAL_SERVER_ERROR,
       message:
         typeof message === 'string'
           ? message

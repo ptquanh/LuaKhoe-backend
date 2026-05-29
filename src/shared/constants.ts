@@ -28,6 +28,7 @@ export const ERR_CODE = {
     'PASSWORD_OR_USERNAME_INCORRECT'.toLowerCase(),
   PASSWORD_CONFIRMATION_MISMATCH:
     'PASSWORD_CONFIRMATION_MISMATCH'.toLowerCase(),
+  CONTENT_POLICY_VIOLATION: 'CONTENT_POLICY_VIOLATION'.toLowerCase(),
 };
 
 export const APP_ACTION = {
@@ -42,6 +43,11 @@ export const APP_ACTION = {
   CHANGE_PASSWORD: 'CHANGE_PASSWORD'.toLowerCase(),
   SOCIAL_LOGIN: 'SOCIAL_LOGIN'.toLowerCase(),
   BAN_TOO_MANY_FAILED_ATTEMPTS: 'BAN_TOO_MANY_FAILED_ATTEMPTS'.toLowerCase(),
+};
+
+export const EVENT_KEYS = {
+  POST_CREATED: 'post.created',
+  ADMIN_ALERT_VIOLATION: 'admin.alert.violation',
 };
 
 export enum CONFIG_KEY {

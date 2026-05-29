@@ -48,11 +48,13 @@ export class Post extends AuditWithTimezone {
   score: number;
 
   @Column({
-    type: 'enum',
-    enum: POST_STATUS,
+    type: 'varchar',
     default: POST_STATUS.PENDING,
   })
   status: POST_STATUS;
+
+  @Column({ name: 'rejected_by', type: 'varchar', length: 20, nullable: true })
+  rejectedBy: string;
 
   @Column({ type: 'varchar', nullable: true })
   category: string;

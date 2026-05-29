@@ -62,7 +62,10 @@ export class CreatePostDTO {
 
   @ApiPropertyOptional({ example: false })
   @IsOptional()
-  @Transform(({ value }) => value === 'true' || value === true)
+  @Transform(({ value }) => {
+    if (value === undefined || value === null) return false;
+    return value === 'true' || value === true;
+  })
   @IsBoolean()
   isDraft?: boolean;
 }
@@ -98,6 +101,10 @@ export class UpdatePostDTO {
 
   @ApiPropertyOptional({ example: false })
   @IsOptional()
+  @Transform(({ value }) => {
+    if (value === undefined || value === null) return undefined;
+    return value === 'true' || value === true;
+  })
   @IsBoolean()
   isDraft?: boolean;
 }

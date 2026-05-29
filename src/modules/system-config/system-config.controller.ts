@@ -76,3 +76,23 @@ export class SystemConfigController {
     }
   }
 }
+
+@ApiTags('System Configs')
+@ApiBearerAuth()
+@UseGuards(AuthGuard, RolesGuard)
+@Roles(ROLE.ADMIN)
+@Controller('system-configs')
+export class SystemConfigsController {
+  constructor(private readonly systemConfigService: SystemConfigService) {}
+
+  @Get(':key')
+  @ApiOperation({ summary: 'Get system configuration by key (Admin only)' })
+  async getConfigByKey(@Param('key') key: string): Promise<HttpResponse> {
+    const dbKey = key.toUpperCase().replace(/-/g, '_');
+    const value = await this.systemConfigService.get(dbKey);
+    if (value === null) {
+      throw new NotFoundException(`Configuration with key "${key}" not found`);
+    }
+    return generateSuccessResult({ key: dbKey, value });
+  }
+}
