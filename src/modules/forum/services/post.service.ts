@@ -14,6 +14,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { StorageService } from '@modules/storage/storage.service';
 import { FarmerProfile } from '@modules/user/entities/farmer-profile.entity';
 import { User } from '@modules/user/entities/user.entity';
+import { UserService } from '@modules/user/services/user.service';
 
 import {
   ENV_KEY,
@@ -33,6 +34,7 @@ import { Comment } from '../entities/comment.entity';
 import { PostVote } from '../entities/post-vote.entity';
 import { Post } from '../entities/post.entity';
 import { ModerationService } from './moderation.service';
+import { NotificationService } from './notification.service';
 
 @Injectable()
 export class PostService implements OnModuleInit {
@@ -46,6 +48,8 @@ export class PostService implements OnModuleInit {
     private readonly moderationService: ModerationService,
     private readonly storageService: StorageService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly notificationService: NotificationService,
+    private readonly userService: UserService,
   ) {}
 
   onModuleInit() {
@@ -171,9 +175,24 @@ Output STRICTLY as a JSON object:
       status,
       flaggedReason,
       isAdminPost,
+      diagnosisId: dto.attachedDiagnosisId || null,
     });
 
     const savedPost = await this.postRepository.save(post);
+
+    if (dto.taggedUsernames && dto.taggedUsernames.length > 0) {
+      const users = await this.userService.findUsersByUsernames(
+        dto.taggedUsernames,
+      );
+      const userIds = users.map((u) => u.id);
+      if (userIds.length > 0) {
+        this.notificationService.notifyUsersTaggedInPost(
+          userIds,
+          savedPost.id,
+          authorId,
+        );
+      }
+    }
 
     if (!isDraft && !isAdmin) {
       this.eventEmitter.emit(EVENT_KEYS.POST_CREATED, { postId: savedPost.id });
@@ -194,7 +213,10 @@ Output STRICTLY as a JSON object:
       .createQueryBuilder('post')
       .leftJoinAndSelect('post.author', 'author')
       .leftJoinAndSelect('author.farmerProfile', 'farmerProfile')
-      .leftJoinAndSelect('author.adminProfile', 'adminProfile');
+      .leftJoinAndSelect('author.adminProfile', 'adminProfile')
+      .leftJoinAndSelect('post.diagnosis', 'diagnosis')
+      .leftJoinAndSelect('diagnosis.results', 'results')
+      .leftJoinAndSelect('results.disease', 'disease');
 
     // Filter by status (strict security check to prevent unapproved posts leakage to farmers)
     const isAdmin = userRole === ROLE.ADMIN;
@@ -382,6 +404,9 @@ Output STRICTLY as a JSON object:
       .leftJoinAndSelect('post.author', 'author')
       .leftJoinAndSelect('author.farmerProfile', 'farmerProfile')
       .leftJoinAndSelect('author.adminProfile', 'adminProfile')
+      .leftJoinAndSelect('post.diagnosis', 'diagnosis')
+      .leftJoinAndSelect('diagnosis.results', 'results')
+      .leftJoinAndSelect('results.disease', 'disease')
       .where('post.id = :postId', { postId });
 
     // DISTINCT ON subquery for highest-scoring root comment (topComment)
@@ -604,6 +629,9 @@ Output STRICTLY as a JSON object:
       .leftJoinAndSelect('post.author', 'author')
       .leftJoinAndSelect('author.farmerProfile', 'farmerProfile')
       .leftJoinAndSelect('author.adminProfile', 'adminProfile')
+      .leftJoinAndSelect('post.diagnosis', 'diagnosis')
+      .leftJoinAndSelect('diagnosis.results', 'results')
+      .leftJoinAndSelect('results.disease', 'disease')
       .where('post.authorId = :userId', { userId });
 
     if (status) {

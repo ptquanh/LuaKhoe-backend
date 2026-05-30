@@ -99,7 +99,9 @@ export class FeedbackService extends BaseCRUDService<Feedback> {
       {},
       {
         relations: {
-          user: true,
+          user: {
+            farmerProfile: true,
+          },
           diagnosis: {
             results: {
               disease: true,

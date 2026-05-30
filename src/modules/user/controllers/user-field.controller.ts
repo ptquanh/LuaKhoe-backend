@@ -17,12 +17,12 @@ import { AuthGuard } from '@shared/guards/auth.guard';
 import { ApplyRateLimiting } from '@shared/interceptors/rate-limiting.interceptor';
 import { UserAuthProfile } from '@shared/interfaces';
 
-import { UserFieldService } from './services/user-field.service';
-import { CreateUserFieldDto, UpdateUserFieldDto } from './user-field.dto';
+import { UserFieldService } from '../services/user-field.service';
+import { CreateUserFieldDto, UpdateUserFieldDto } from '../user-field.dto';
 
 @ApiBearerAuth()
 @ApiTags('UserField')
-@Controller('users/fields')
+@Controller('user-fields')
 @UseGuards(AuthGuard)
 export class UserFieldController {
   constructor(private readonly userFieldService: UserFieldService) {}

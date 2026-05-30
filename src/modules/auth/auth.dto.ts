@@ -3,6 +3,7 @@ import {
   IsEmail,
   IsEnum,
   IsNotEmpty,
+  IsNotIn,
   IsOptional,
   IsString,
   IsStrongPassword,
@@ -16,6 +17,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 import {
   ERR_CODE,
+  RESERVED_USERNAMES,
   SOCIAL_PROVIDER,
   VERIFY_OTP_ACTION,
 } from '@shared/constants';
@@ -45,6 +47,9 @@ export class RegisterDTO {
     allowedSymbols: false,
   })
   @TrimAndLowercase()
+  @IsNotIn(RESERVED_USERNAMES, {
+    message: 'Tên người dùng này không hợp lệ hoặc đã được hệ thống bảo lưu.',
+  })
   username: string;
 
   @ApiProperty({

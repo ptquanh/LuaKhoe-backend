@@ -224,3 +224,17 @@ export const VOTE_CONFIG = {
     updateScore: false,
   },
 } as const;
+
+export const RESERVED_USERNAMES = [
+  'settings',
+  'edit',
+  'admin',
+  'api',
+  'auth',
+  'login',
+  'register',
+  'dashboard',
+  'search',
+  'profile',
+  'forum',
+];

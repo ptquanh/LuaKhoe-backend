@@ -1,9 +1,16 @@
-import { IsEmail, IsEnum, IsOptional, IsString } from 'class-validator';
+import {
+  IsEmail,
+  IsEnum,
+  IsNotEmpty,
+  IsNotIn,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 import { PaginatedByKeywordDTO } from '@shared/common/pagination.dto';
-import { ENTITY_STATUS } from '@shared/constants';
+import { ENTITY_STATUS, RESERVED_USERNAMES } from '@shared/constants';
 import {
   OnlyTextAndNumbers,
   TrimAndLowercase,
@@ -24,6 +31,9 @@ export class VerifyUniquenessUserDTO {
     allowedSymbols: false,
   })
   @TrimAndLowercase()
+  @IsNotIn(RESERVED_USERNAMES, {
+    message: 'Tên người dùng này không hợp lệ hoặc đã được hệ thống bảo lưu.',
+  })
   username: string;
 }
 
@@ -65,4 +75,20 @@ export class GetUsersAdminDTO extends PaginatedByKeywordDTO {
   @IsOptional()
   @IsEnum(ENTITY_STATUS)
   status?: ENTITY_STATUS;
+}
+
+export class UsernameParamDTO {
+  @ApiProperty({ description: 'Tên người dùng cần truy vấn' })
+  @IsString()
+  @IsNotIn(RESERVED_USERNAMES, {
+    message: 'Tên người dùng này không hợp lệ hoặc đã được hệ thống bảo lưu.',
+  })
+  username: string;
+}
+
+export class SearchUsersQueryDTO {
+  @ApiProperty({ description: 'Từ khóa tìm kiếm (username, email, họ tên)' })
+  @IsString()
+  @IsNotEmpty({ message: 'Từ khóa tìm kiếm không được để trống.' })
+  query: string;
 }

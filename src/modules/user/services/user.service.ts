@@ -1,6 +1,6 @@
 import { isEmail } from 'class-validator';
 import { HttpResponse, OperationResult } from 'mvc-common-toolkit';
-import { Any, ILike, Repository } from 'typeorm';
+import { Any, ILike, In, Repository } from 'typeorm';
 
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -213,5 +213,50 @@ export class UserService extends BaseCRUDService<User> {
     await this.hardDeleteByID(id);
 
     return generateSuccessResult({ id, message: 'User deleted successfully' });
+  }
+
+  public async searchUsers(query: string): Promise<HttpResponse> {
+    const keyword = `%${query || ''}%`;
+    const users = await this.repo.find({
+      where: [
+        { username: ILike(keyword) },
+        { farmerProfile: { firstName: ILike(keyword) } },
+        { farmerProfile: { lastName: ILike(keyword) } },
+      ],
+      relations: ['farmerProfile', 'adminProfile'],
+      take: 10,
+    });
+
+    const data = users.map((u) => {
+      const name =
+        [u.farmerProfile?.lastName, u.farmerProfile?.firstName]
+          .filter(Boolean)
+          .join(' ') || u.username;
+      return {
+        id: u.id,
+        username: u.username,
+        displayName: name,
+        email: u.email,
+        firstName:
+          u.farmerProfile?.firstName || u.adminProfile?.firstName || null,
+        lastName: u.farmerProfile?.lastName || u.adminProfile?.lastName || null,
+      };
+    });
+
+    return generateSuccessResult(data);
+  }
+
+  public async findUsersByUsernames(usernames: string[]): Promise<User[]> {
+    if (!usernames || usernames.length === 0) return [];
+    return this.repo.find({
+      where: { username: In(usernames) },
+    });
+  }
+
+  public async findByUsername(username: string): Promise<User | null> {
+    return this.repo.findOne({
+      where: { username },
+      relations: ['farmerProfile', 'adminProfile'],
+    });
   }
 }

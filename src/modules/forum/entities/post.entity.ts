@@ -8,6 +8,7 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 
+import { Diagnosis } from '@modules/diagnosis/entities/diagnosis.entity';
 import { User } from '@modules/user/entities/user.entity';
 
 import { AuditWithTimezone } from '@shared/common/audit.entity';
@@ -20,6 +21,9 @@ import { PostVote } from './post-vote.entity';
 export class Post extends AuditWithTimezone {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @Column({ name: 'diagnosis_id', type: 'uuid', nullable: true })
+  diagnosisId: string;
 
   @Column({ name: 'author_id', type: 'uuid' })
   @Index()
@@ -68,6 +72,10 @@ export class Post extends AuditWithTimezone {
   @ManyToOne(() => User)
   @JoinColumn({ name: 'author_id' })
   author: User;
+
+  @ManyToOne(() => Diagnosis, { nullable: true })
+  @JoinColumn({ name: 'diagnosis_id' })
+  diagnosis: Diagnosis;
 
   @OneToMany(() => Comment, (comment) => comment.post)
   comments: Comment[];

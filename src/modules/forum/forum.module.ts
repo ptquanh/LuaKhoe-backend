@@ -12,6 +12,7 @@ import { PostVote } from './entities/post-vote.entity';
 import { Post } from './entities/post.entity';
 import { CommentService } from './services/comment.service';
 import { ModerationService } from './services/moderation.service';
+import { NotificationService } from './services/notification.service';
 import { PostEventHandlerService } from './services/post-event-handler.service';
 import { PostService } from './services/post.service';
 
@@ -28,12 +29,14 @@ import { PostService } from './services/post.service';
     ModerationService,
     PostEventHandlerService,
     PostExpirationCron,
+    NotificationService,
   ],
   exports: [
     PostService,
     CommentService,
     ModerationService,
     PostEventHandlerService,
+    NotificationService,
   ],
 })
 export class ForumModule {}

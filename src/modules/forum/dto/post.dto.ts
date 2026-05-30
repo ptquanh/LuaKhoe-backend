@@ -69,6 +69,26 @@ export class CreatePostDTO {
   })
   @IsBoolean()
   isDraft?: boolean;
+
+  @ApiPropertyOptional({ example: ['username1', 'username2'] })
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (Array.isArray(value)) return value;
+    if (typeof value === 'string') {
+      if (!value.trim()) return [];
+      return value.split(',').map((v) => v.trim().replace('@', ''));
+    }
+    return value;
+  })
+  @IsArray()
+  @ArrayMaxSize(10, { message: 'Chỉ được tag tối đa 10 người.' })
+  @IsString({ each: true })
+  taggedUsernames?: string[];
+
+  @ApiPropertyOptional({ example: '550e8400-e29b-41d4-a716-446655440000' })
+  @IsOptional()
+  @IsUUID('4')
+  attachedDiagnosisId?: string;
 }
 
 export class UpdatePostDTO {

@@ -4,6 +4,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { CloudinaryModule } from '@modules/cloudinary/cloudinary.module';
 import { GeoContextModule } from '@modules/geo-context/geo-context.module';
 
+import { UserFieldController } from './controllers/user-field.controller';
+import { UserController } from './controllers/user.controller';
 import { AdminProfile } from './entities/admin-profile.entity';
 import { FarmerProfile } from './entities/farmer-profile.entity';
 import { UserField } from './entities/user-field.entity';
@@ -13,8 +15,6 @@ import { UserFieldService } from './services/user-field.service';
 import { UserProfileService } from './services/user-profile.service';
 import { UserSocialAccountService } from './services/user-social-account.service';
 import { UserService } from './services/user.service';
-import { UserFieldController } from './user-field.controller';
-import { UserController } from './user.controller';
 
 @Global()
 @Module({
