@@ -19,7 +19,10 @@ import { DiagnosisService } from './services/diagnosis.service';
 @Module({
   imports: [
     TypeOrmModule.forFeature([Diagnosis, DiagnosisResult]),
-    HttpModule,
+    HttpModule.register({
+      timeout: 60000,
+      maxRedirects: 5,
+    }),
     CloudinaryModule,
     AiModelModule,
     DiseaseModule,

@@ -51,6 +51,21 @@ export class SystemConfigService
         description: 'Number of knowledge base chunks to retrieve',
       },
       {
+        key: SYSTEM_CONFIG_KEY.RAG_CHUNK_SIZE,
+        value: '300',
+        description: 'Word/character limit for each knowledge chunk splits',
+      },
+      {
+        key: SYSTEM_CONFIG_KEY.RAG_CHUNK_OVERLAP,
+        value: '50',
+        description: 'Number of overlapping words/characters between consecutive chunks',
+      },
+      {
+        key: SYSTEM_CONFIG_KEY.RAG_RAW_LIMIT,
+        value: '10',
+        description: 'Maximum number of raw nutrition documents to retrieve for reranking',
+      },
+      {
         key: SYSTEM_CONFIG_KEY.WEATHER_CACHE_TTL_MINUTES,
         value: '30',
         description: 'Weather API response caching duration in minutes',

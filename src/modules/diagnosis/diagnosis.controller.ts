@@ -57,4 +57,17 @@ export class DiagnosisController {
   async getById(@Param('id') id: string) {
     return this.diagnosisService.getById(id);
   }
+
+  @Post(':id/supplement')
+  @ApiOperation({
+    summary: 'Submit close-up supplementary image for weighted re-scoring',
+  })
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FileInterceptor('image'))
+  async uploadSupplement(
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    return this.diagnosisService.addSupplementaryImage(id, file);
+  }
 }

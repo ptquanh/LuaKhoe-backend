@@ -268,4 +268,29 @@ export class AiService implements OnModuleInit {
       throw error;
     }
   }
+
+  async reScore(params: {
+    originalResults: { disease: string; confidence: number }[];
+    newImageUrl: string;
+    modelVersionName?: string;
+  }): Promise<any> {
+    try {
+      const response = await firstValueFrom(
+        this.httpService.post(`${this.aiConfig.baseUrl}/re-score`, {
+          original_results: params.originalResults.map((r) => ({
+            disease: r.disease,
+            confidence: r.confidence,
+          })),
+          new_image_url: params.newImageUrl,
+          ai_model_version: params.modelVersionName,
+        }),
+      );
+      return response.data;
+    } catch (error) {
+      this.logger.error(
+        `Error calling Python re-score service: ${error.message}`,
+      );
+      throw error;
+    }
+  }
 }

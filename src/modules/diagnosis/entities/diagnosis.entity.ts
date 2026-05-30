@@ -42,6 +42,14 @@ export class Diagnosis extends AuditWithTimezone {
   })
   resultImageUrl: string;
 
+  @Column({
+    name: 'supplement_image_url',
+    type: 'varchar',
+    length: 512,
+    nullable: true,
+  })
+  supplementImageUrl: string;
+
   @Column({ name: 'gps_lat', type: 'float', nullable: true })
   gpsLat: number;
 

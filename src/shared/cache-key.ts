@@ -22,3 +22,23 @@ export const rateLimitCacheKey = (
   endpoint: string,
   requestIp: string,
 ) => `rate_limit:${method}:${endpoint}:${requestIp}`;
+
+export const semanticCacheKey = (
+  diseases: { name: string; confidence: number; affectedAreaRatio: number }[],
+) => {
+  const sortedDiseases = [...diseases]
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map((d) => {
+      let confStr = 'Low';
+      if (d.confidence > 0.7) confStr = 'High';
+      else if (d.confidence >= 0.4) confStr = 'Med';
+      const cleanName = d.name.replace(/\s+/g, '-');
+      return `${cleanName}(${confStr})`;
+    })
+    .join('-');
+
+  const maxArea = Math.max(...diseases.map((d) => d.affectedAreaRatio || 0));
+  const areaStr = maxArea > 0.3 ? 'Nặng' : 'Nhẹ';
+
+  return `semantic_cache:diagnosis:diseases:${sortedDiseases}:area:${areaStr}`;
+};

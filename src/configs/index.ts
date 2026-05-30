@@ -3,6 +3,7 @@ import appConfig from './app.config';
 import cloudinaryConfig from './cloudinary.config';
 import databaseConfig from './database.config';
 import emailConfig from './email.config';
+import cohereConfig from './cohere.config';
 import geminiConfig from './gemini.config';
 import groqConfig from './groq.config';
 import jwtConfig from './jwt.config';
@@ -17,6 +18,7 @@ export default [
   emailConfig,
   geminiConfig,
   groqConfig,
+  cohereConfig,
   jwtConfig,
   r2Config,
   redisConfig,

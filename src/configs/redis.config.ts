@@ -26,7 +26,8 @@ export const redisConfig = registerAs(CONFIG_KEY.REDIS, () => {
     host: process.env.REDIS_HOST || 'localhost',
     port: parseInt(process.env.REDIS_PORT || '6379', 10),
     password: process.env.REDIS_PASSWORD,
-    prefix: process.env.REDIS_PREFIX || 'backend',
+    prefix:
+      (process.env.REDIS_PREFIX || process.env.APP_NAME || 'backend') + ':',
   };
 
   validateConfig(config, RedisConfig);

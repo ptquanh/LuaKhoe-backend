@@ -14,7 +14,10 @@ import { AiService } from './ai.service';
   imports: [
     TypeOrmModule.forFeature([AiModel]),
     UserModule,
-    HttpModule,
+    HttpModule.register({
+      timeout: 60000,
+      maxRedirects: 5,
+    }),
     CloudinaryModule,
   ],
   controllers: [AiModelController],

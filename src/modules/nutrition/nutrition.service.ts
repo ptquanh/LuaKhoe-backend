@@ -1,11 +1,13 @@
 import { GoogleGenerativeAIEmbeddings } from '@langchain/google-genai';
 import { ChatGroq } from '@langchain/groq';
 import { Annotation, END, START, StateGraph } from '@langchain/langgraph';
-import { HttpResponse } from 'mvc-common-toolkit';
+import { RecursiveCharacterTextSplitter } from '@langchain/textsplitters';
+import { CacheService, HttpResponse } from 'mvc-common-toolkit';
 import { Repository } from 'typeorm';
 
 import {
   BadRequestException,
+  Inject,
   Injectable,
   Logger,
   OnModuleInit,
@@ -15,7 +17,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 
 import { SystemConfigService } from '@modules/system-config/system-config.service';
 
-import { ENV_KEY, SYSTEM_CONFIG_KEY } from '@shared/constants';
+import { semanticCacheKey } from '@shared/cache-key';
+import { ENV_KEY, INJECTION_TOKEN, SYSTEM_CONFIG_KEY } from '@shared/constants';
 import { generateSuccessResult } from '@shared/helpers/operation-result.helper';
 import { BaseCRUDService } from '@shared/services/base-crud.service';
 
@@ -54,6 +57,8 @@ export class NutritionService
     docRepo: Repository<Nutritions>,
     private readonly configService: ConfigService,
     private readonly systemConfigService: SystemConfigService,
+    @Inject(INJECTION_TOKEN.REDIS_SERVICE)
+    private readonly cacheService: CacheService,
   ) {
     super(docRepo);
   }
@@ -159,10 +164,11 @@ export class NutritionService
           ]
         : []);
 
-    const limitStr = await this.systemConfigService.get(
-      SYSTEM_CONFIG_KEY.RAG_CONTEXT_WINDOW,
+    // Retrieve raw documents from Vector DB using dynamic system config limit
+    const limitVal = await this.systemConfigService.getNumber(
+      SYSTEM_CONFIG_KEY.RAG_RAW_LIMIT,
+      10,
     );
-    const limitVal = limitStr ? Number(limitStr) : 5;
 
     for (const d of diseaseList) {
       let scientificName = d.scientificName;
@@ -203,18 +209,145 @@ export class NutritionService
       }
     }
 
-    // Deduplicate documents by ID to avoid sending duplicate context to LLM
+    // Deduplicate documents by ID
     const uniqueDocs = Array.from(
       new Map(documents.map((doc) => [doc.id, doc])).values(),
     );
 
-    return { documents: uniqueDocs };
+    // Call Cohere Rerank API to narrow down Top-10 to Top-3
+    const diseaseNames = diseaseList.map((d) => d.name).join(' & ');
+    const rerankQuery = `${diseaseNames} ${state.context || ''}`;
+    const rerankedDocs = await this.rerankWithCohere(uniqueDocs, rerankQuery);
+
+    return { documents: rerankedDocs };
+  }
+
+  private async rerankWithCohere(
+    documents: any[],
+    query: string,
+  ): Promise<any[]> {
+    const cohereApiKey = this.configService.get<string>(ENV_KEY.COHERE_API_KEY);
+    if (!cohereApiKey) {
+      this.logger.warn(
+        'COHERE_API_KEY is not configured. Falling back to default top 3 vector results.',
+      );
+      return documents.slice(0, 3);
+    }
+
+    if (documents.length === 0) {
+      return [];
+    }
+
+    try {
+      const axios = require('axios');
+      const response = await axios.post(
+        'https://api.cohere.com/v1/rerank',
+        {
+          model: 'rerank-multilingual-v3.0',
+          query,
+          documents: documents.map((doc) => doc.content),
+          top_n: 3,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${cohereApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          timeout: 10000,
+        },
+      );
+
+      if (response.data && response.data.results) {
+        const rerankedDocs = response.data.results.map((result: any) => {
+          const originalDoc = documents[result.index];
+          return {
+            ...originalDoc,
+            rerankScore: result.relevance_score,
+          };
+        });
+        this.logger.log(
+          `Cohere Rerank completed successfully. Selected top 3 docs.`,
+        );
+        return rerankedDocs;
+      }
+    } catch (err) {
+      this.logger.error(
+        `Cohere Rerank failed: ${err.message}. Falling back to default top 3.`,
+      );
+    }
+
+    return documents.slice(0, 3);
+  }
+
+  private compressContext(documents: any[], query: string): string {
+    const queryTokens = query
+      .toLowerCase()
+      .split(/\s+/)
+      .filter((t) => t.length > 2);
+    const safetyKeywords = ['không', 'tuyệt đối', 'nguy hiểm', 'lưu ý'];
+
+    const compressedChunks = documents.map((doc) => {
+      const sentences = doc.content
+        .split(/(?<=[.!?])\s+/)
+        .filter((s: string) => s.trim().length > 0);
+
+      const scoredSentences = sentences.map((sentence: string) => {
+        const sentenceLower = sentence.toLowerCase();
+        let score = 0;
+        let isSafety = false;
+
+        for (const word of safetyKeywords) {
+          if (sentenceLower.includes(word)) {
+            isSafety = true;
+            break;
+          }
+        }
+
+        for (const token of queryTokens) {
+          if (sentenceLower.includes(token)) {
+            score += 5;
+          }
+        }
+
+        return {
+          text: sentence,
+          score,
+          isSafety,
+        };
+      });
+
+      const safetySentences = scoredSentences.filter((s: any) => s.isSafety);
+      const nonSafetySentences = scoredSentences.filter(
+        (s: any) => !s.isSafety,
+      );
+
+      nonSafetySentences.sort((a: any, b: any) => b.score - a.score);
+
+      const finalSentences: string[] = [];
+      if (safetySentences.length >= 4) {
+        finalSentences.push(...safetySentences.map((s: any) => s.text));
+      } else {
+        finalSentences.push(...safetySentences.map((s: any) => s.text));
+        const remainingSlots = 4 - finalSentences.length;
+        const topNonSafety = nonSafetySentences.slice(0, remainingSlots);
+        finalSentences.push(...topNonSafety.map((s: any) => s.text));
+      }
+
+      const orderedSentences = sentences.filter((s: string) =>
+        finalSentences.includes(s),
+      );
+
+      return `[Source: ${doc.source}]\n${orderedSentences.join(' ')}`;
+    });
+
+    return compressedChunks.join('\n\n');
   }
 
   private async generate(state: typeof GraphState.State) {
-    const contextStr = state.documents
-      .map((doc) => `[Source: ${doc.source}]\n${doc.content}`)
-      .join('\n\n');
+    const compressedContextStr = this.compressContext(
+      state.documents,
+      state.query,
+    );
 
     const diseaseList =
       state.diseases ||
@@ -235,7 +368,7 @@ ${diseasesStr}
 Ngữ cảnh thực địa bổ sung: ${state.query}
 
 Sử dụng tài liệu chuyên môn sau đây để đưa ra lời khuyên chi tiết cho người nông dân:
-${contextStr}
+${compressedContextStr}
 
 Yêu cầu BẮT BUỘC:
 1. Trả lời bằng tiếng Việt, giọng điệu thân thiện, dễ hiểu cho nông dân.
@@ -249,7 +382,7 @@ Yêu cầu BẮT BUỘC:
    - Trong trường "treatment_protocol":
      * Trường "biological" và "chemical" PHẢI LÀ MẢNG CÁC ĐỐI TƯỢNG (Array of Objects), mỗi đối tượng đại diện cho một bệnh hoặc khuyến nghị phối hợp với cấu trúc chính xác: {"disease_name": "Tên bệnh", "steps": ["Khuyến nghị 1", "Khuyến nghị 2"]}. TUYỆT ĐỐI KHÔNG ĐƯỢC để giá trị của "biological" hay "chemical" là chuỗi văn bản (string) hay mảng chứa các chuỗi thuần túy.
      * TUYỆT ĐỐI KHÔNG sử dụng các ký tự định dạng markdown như "###", "**" hay "-" ở đầu chuỗi trong các trường disease_name và các phần tử trong steps. Các tên bệnh và các hành động phải là văn bản sạch (clean text).
-     * Trường "cultural" PHẢI LÀ MẢNG CÁC CHUỖI VĂN BẢN (Array of Strings) đại diện cho các biện pháp canh tác (ví dụ: ["Biện pháp 1", "Biện pháp 2"]). TUYỆT ĐỐI KHÔNG để giá trị của "cultural" là chuỗi văn bản (string) chứa các ký tự xuống dòng hay gạch đầu dòng.
+     * Trường "cultural" PHẢI LÀ MẢNG CÁC CHUỒI VĂN BẢN (Array of Strings) đại diện cho các biện pháp canh tác (ví dụ: ["Biện pháp 1", "Biện pháp 2"]). TUYỆT ĐỐI KHÔNG để giá trị của "cultural" là chuỗi văn bản (string) chứa các ký tự xuống dòng hay gạch đầu dòng.
 4. Cấu trúc JSON mẫu bạn phải trả về:
 {
   "summary": "Lời chào thân thiện và tóm tắt ngắn gọn tình trạng các bệnh được phát hiện, thứ tự ưu tiên xử lý cùng lời khuyên an toàn hóa học cốt lõi.",
@@ -344,9 +477,6 @@ Yêu cầu BẮT BUỘC:
     return { answer: parsedAnswer };
   }
 
-  /**
-   * RAG Advisory generating structured JSON.
-   */
   async getAdvisory(
     diseases:
       | string
@@ -362,6 +492,27 @@ Yêu cầu BẮT BUỘC:
     const diseaseName = isArray
       ? diseases.map((d) => d.name).join(' & ')
       : (diseases as string);
+
+    // Normalized Semantic Caching to preserve Groq TPM Limits
+    let cacheKey = '';
+    if (isArray && diseases.length > 0) {
+      cacheKey = semanticCacheKey(diseases);
+
+      // Check Cache
+      try {
+        const cachedResultStr = await this.cacheService.get(cacheKey);
+        if (cachedResultStr) {
+          const cachedResult = JSON.parse(cachedResultStr);
+          this.logger.log(`Semantic Cache Hit for: ${cacheKey}`);
+          return generateSuccessResult(cachedResult);
+        }
+      } catch (err) {
+        this.logger.warn(
+          `Failed to retrieve semantic cache for key ${cacheKey}: ${err.message}`,
+        );
+      }
+    }
+
     this.logger.log(`Generating advisory for ${diseaseName}`);
 
     const result = await this.graph.invoke({
@@ -380,14 +531,74 @@ Yêu cầu BẮT BUỘC:
       context: context,
     });
 
-    return generateSuccessResult({
+    const finalResult = {
       advisory: result.answer,
       sources: result.documents.map((d) => ({
         source: d.source,
         id: d.id,
       })),
       disease: diseaseName,
-    });
+    };
+
+    // Store in Cache and update index array
+    if (cacheKey) {
+      try {
+        await this.cacheService.set(cacheKey, JSON.stringify(finalResult));
+
+        // Add to active keys tracking list
+        const keysStr = await this.cacheService.get('semantic_cache_keys');
+        const keys = keysStr ? JSON.parse(keysStr) : [];
+        if (!keys.includes(cacheKey)) {
+          keys.push(cacheKey);
+          await this.cacheService.set(
+            'semantic_cache_keys',
+            JSON.stringify(keys),
+          );
+        }
+      } catch (err) {
+        this.logger.warn(`Failed to store semantic cache: ${err.message}`);
+      }
+    }
+
+    return generateSuccessResult(finalResult);
+  }
+
+  async invalidateSemanticCache() {
+    this.logger.log('Invalidating semantic cache...');
+    try {
+      const keysStr = await this.cacheService.get('semantic_cache_keys');
+      if (keysStr) {
+        const keys = JSON.parse(keysStr);
+        for (const key of keys) {
+          await this.cacheService.del(key);
+        }
+      }
+      await this.cacheService.del('semantic_cache_keys');
+      this.logger.log('Semantic cache invalidated successfully.');
+    } catch (err) {
+      this.logger.error(`Failed to invalidate semantic cache: ${err.message}`);
+    }
+  }
+
+  // Cache invalidation triggers on all document modifications
+  override async create(dto: Partial<Nutritions>): Promise<Nutritions> {
+    const result = await super.create(dto);
+    await this.invalidateSemanticCache();
+    return result;
+  }
+
+  override async updateByID(
+    id: number | string,
+    dto: Partial<Nutritions>,
+  ): Promise<Nutritions | null> {
+    const result = await super.updateByID(id, dto);
+    await this.invalidateSemanticCache();
+    return result;
+  }
+
+  override async deleteByID(entityID: number | string): Promise<void> {
+    await super.deleteByID(entityID);
+    await this.invalidateSemanticCache();
   }
 
   cleanPDFText(rawText: string, filename: string = ''): string {
@@ -509,14 +720,37 @@ Yêu cầu BẮT BUỘC:
   }
 
   async uploadDocument(content: string, source?: string, metadata?: any) {
-    const chunks = this.chunkText(content, source);
-    const savedChunks: Nutritions[] = [];
+    const chunkSize = await this.systemConfigService.getNumber(
+      SYSTEM_CONFIG_KEY.RAG_CHUNK_SIZE,
+      300,
+    );
+    const chunkOverlap = await this.systemConfigService.getNumber(
+      SYSTEM_CONFIG_KEY.RAG_CHUNK_OVERLAP,
+      50,
+    );
 
-    for (const chunk of chunks) {
-      const mergedMetadata = { ...metadata, ...chunk.metadata };
-      const embedding = await this.embeddings.embedQuery(chunk.content);
+    const splitter = new RecursiveCharacterTextSplitter({
+      chunkSize,
+      chunkOverlap,
+    });
+
+    const cleanedText = this.cleanPDFText(content, source);
+    const splitDocs = await splitter.createDocuments([cleanedText]);
+
+    const savedChunks: Nutritions[] = [];
+    for (let idx = 0; idx < splitDocs.length; idx++) {
+      const splitDoc = splitDocs[idx];
+      const mergedMetadata = {
+        ...metadata,
+        ...splitDoc.metadata,
+        source: source || 'unknown',
+        chunkIndex: idx,
+        totalChunks: splitDocs.length,
+      };
+
+      const embedding = await this.embeddings.embedQuery(splitDoc.pageContent);
       const saved = await this.create({
-        content: chunk.content,
+        content: splitDoc.pageContent,
         source,
         chunkMetadata: mergedMetadata,
         embedding,
@@ -524,6 +758,7 @@ Yêu cầu BẮT BUỘC:
       savedChunks.push(saved);
     }
 
+    await this.invalidateSemanticCache();
     return savedChunks;
   }
 
