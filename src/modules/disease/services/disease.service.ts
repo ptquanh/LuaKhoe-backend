@@ -5,7 +5,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 
 import { PaginatedByKeywordDTO } from '@shared/common/pagination.dto';
-import { DISEASE_STATUS } from '@shared/constants';
+import { DISEASE_STATUS } from '@shared/enums';
 import {
   generateNotFoundResult,
   generateSuccessResult,

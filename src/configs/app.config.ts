@@ -9,7 +9,7 @@ import { APP_ENV } from 'mvc-common-toolkit';
 
 import { registerAs } from '@nestjs/config';
 
-import { CONFIG_KEY } from '@shared/constants';
+import { CONFIG_KEY } from '@shared/enums';
 import { validateConfig } from '@shared/helpers/validate-config.helper';
 
 class AppConfig {

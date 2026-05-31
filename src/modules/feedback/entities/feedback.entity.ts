@@ -12,7 +12,7 @@ import { Diagnosis } from '@modules/diagnosis/entities/diagnosis.entity';
 import { User } from '@modules/user/entities/user.entity';
 
 import { AuditWithTimezone } from '@shared/common/audit.entity';
-import { FEEDBACK_STATUS } from '@shared/constants';
+import { FEEDBACK_STATUS } from '@shared/enums';
 
 import { FeedbackActualDisease } from './feedback-actual-disease.entity';
 

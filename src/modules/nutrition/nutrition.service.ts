@@ -18,7 +18,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { SystemConfigService } from '@modules/system-config/system-config.service';
 
 import { semanticCacheKey } from '@shared/cache-key';
-import { ENV_KEY, INJECTION_TOKEN, SYSTEM_CONFIG_KEY } from '@shared/constants';
+import { ENV_KEY, INJECTION_TOKEN } from '@shared/constants';
+import { SYSTEM_CONFIG_KEY } from '@shared/enums';
 import { generateSuccessResult } from '@shared/helpers/operation-result.helper';
 import { BaseCRUDService } from '@shared/services/base-crud.service';
 

@@ -7,8 +7,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 
 import { Diagnosis } from '@modules/diagnosis/entities/diagnosis.entity';
 
-import { ENTITY_STATUS, ERR_CODE } from '@shared/constants';
-import { ROLE } from '@shared/enums';
+import { ERR_CODE } from '@shared/constants';
+import { ENTITY_STATUS, ROLE } from '@shared/enums';
 import {
   generateConflictResult,
   generateNotFoundResult,

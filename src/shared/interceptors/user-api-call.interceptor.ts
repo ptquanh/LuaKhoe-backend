@@ -2,7 +2,8 @@ import { ExecutionContext, Optional, SetMetadata } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Reflector } from '@nestjs/core';
 
-import { ENV_KEY, HEADER_KEY, METADATA_KEY } from '@shared/constants';
+import { ENV_KEY } from '@shared/constants';
+import { HEADER_KEY, METADATA_KEY } from '@shared/enums';
 import { AppRequest } from '@shared/interfaces';
 
 export type UserIdExtractor = (req: AppRequest) => string;

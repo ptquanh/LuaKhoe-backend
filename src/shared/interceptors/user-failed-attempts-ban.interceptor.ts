@@ -23,10 +23,9 @@ import { failedAttemptCacheKey as getFailedAttemptCacheKey } from '@shared/cache
 import {
   APP_ACTION,
   DEFAULT_FAILED_ATTEMPTS_BAN,
-  ENTITY_STATUS,
   INJECTION_TOKEN,
-  METADATA_KEY,
 } from '@shared/constants';
+import { ENTITY_STATUS, METADATA_KEY } from '@shared/enums';
 
 import { UserAPICallInterceptor } from './user-api-call.interceptor';
 

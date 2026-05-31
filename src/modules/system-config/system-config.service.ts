@@ -5,11 +5,8 @@ import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 
 import { systemConfigCacheKey } from '@shared/cache-key';
-import {
-  CACHE_TTL,
-  INJECTION_TOKEN,
-  SYSTEM_CONFIG_KEY,
-} from '@shared/constants';
+import { CACHE_TTL, INJECTION_TOKEN } from '@shared/constants';
+import { SYSTEM_CONFIG_KEY } from '@shared/enums';
 import { BaseCRUDService } from '@shared/services/base-crud.service';
 
 import { UpdateSystemConfigDto } from './system-config.dto';
@@ -58,12 +55,14 @@ export class SystemConfigService
       {
         key: SYSTEM_CONFIG_KEY.RAG_CHUNK_OVERLAP,
         value: '50',
-        description: 'Number of overlapping words/characters between consecutive chunks',
+        description:
+          'Number of overlapping words/characters between consecutive chunks',
       },
       {
         key: SYSTEM_CONFIG_KEY.RAG_RAW_LIMIT,
         value: '10',
-        description: 'Maximum number of raw nutrition documents to retrieve for reranking',
+        description:
+          'Maximum number of raw nutrition documents to retrieve for reranking',
       },
       {
         key: SYSTEM_CONFIG_KEY.WEATHER_CACHE_TTL_MINUTES,

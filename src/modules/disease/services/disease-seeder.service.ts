@@ -3,7 +3,7 @@ import { Repository } from 'typeorm';
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 
-import { DISEASE_STATUS } from '@shared/constants';
+import { DISEASE_STATUS } from '@shared/enums';
 
 import { Disease } from '../disease.entity';
 

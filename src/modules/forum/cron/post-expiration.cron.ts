@@ -6,8 +6,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 
 import { SystemConfigService } from '@modules/system-config/system-config.service';
 
-import { SYSTEM_CONFIG_KEY } from '@shared/constants';
-import { POST_STATUS } from '@shared/enums';
+import { POST_STATUS, SYSTEM_CONFIG_KEY } from '@shared/enums';
 
 import { Post } from '../entities/post.entity';
 

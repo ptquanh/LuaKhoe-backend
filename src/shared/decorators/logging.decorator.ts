@@ -2,7 +2,7 @@ import { stringUtils } from 'mvc-common-toolkit';
 
 import { ExecutionContext, createParamDecorator } from '@nestjs/common';
 
-import { HEADER_KEY } from '@shared/constants';
+import { HEADER_KEY } from '@shared/enums';
 
 export const getLogId = (request: any) => {
   if (!request.headers[HEADER_KEY.LOG_ID]) {

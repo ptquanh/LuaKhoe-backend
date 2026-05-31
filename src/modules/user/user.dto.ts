@@ -10,12 +10,12 @@ import {
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 import { PaginatedByKeywordDTO } from '@shared/common/pagination.dto';
-import { ENTITY_STATUS, RESERVED_USERNAMES } from '@shared/constants';
+import { RESERVED_USERNAMES } from '@shared/constants';
 import {
   OnlyTextAndNumbers,
   TrimAndLowercase,
 } from '@shared/decorators/sanitize-input.decorator';
-import { ROLE } from '@shared/enums';
+import { ENTITY_STATUS, ROLE } from '@shared/enums';
 
 export class VerifyUniquenessUserDTO {
   @IsOptional()

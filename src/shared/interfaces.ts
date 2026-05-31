@@ -6,8 +6,8 @@ import {
   PARTNER_AUTH_TYPE,
   PARTNER_DIRECTION,
   PARTNER_TYPE,
-} from './constants';
-import { ROLE } from './enums';
+  ROLE,
+} from './enums';
 
 export interface RunnerUser {
   alias: string;

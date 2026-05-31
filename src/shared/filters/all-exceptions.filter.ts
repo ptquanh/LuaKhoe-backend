@@ -11,12 +11,8 @@ import {
   Logger,
 } from '@nestjs/common';
 
-import {
-  APP_ACTION,
-  ERR_CODE,
-  HEADER_KEY,
-  INJECTION_TOKEN,
-} from '@shared/constants';
+import { APP_ACTION, ERR_CODE, INJECTION_TOKEN } from '@shared/constants';
+import { HEADER_KEY } from '@shared/enums';
 
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {

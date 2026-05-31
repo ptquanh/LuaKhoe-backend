@@ -1,3 +1,5 @@
+import { CONFIG_KEY } from './enums';
+
 export const INJECTION_TOKEN = {
   AUDIT_SERVICE: Symbol.for('AUDIT_SERVICE'),
   HTTP_SERVICE: Symbol.for('HTTP_SERVICE'),
@@ -50,32 +52,7 @@ export const EVENT_KEYS = {
   ADMIN_ALERT_VIOLATION: 'admin.alert.violation',
 };
 
-export enum CONFIG_KEY {
-  APP = 'app',
-  DATABASE = 'database',
-  JWT = 'jwt',
-  REDIS = 'redis',
-  EMAIL = 'email',
-  CLOUDINARY = 'cloudinary',
-  AI_SERVICE = 'aiService',
-  GEMINI = 'gemini',
-  GROQ = 'groq',
-  R2 = 'r2',
-  COHERE = 'cohere',
-}
-
-export enum SYSTEM_CONFIG_KEY {
-  CONFIDENCE_THRESHOLD = 'CONFIDENCE_THRESHOLD',
-  MAX_IMAGE_SIZE_MB = 'MAX_IMAGE_SIZE_MB',
-  RAG_CONTEXT_WINDOW = 'RAG_CONTEXT_WINDOW',
-  RAG_CHUNK_SIZE = 'RAG_CHUNK_SIZE',
-  RAG_CHUNK_OVERLAP = 'RAG_CHUNK_OVERLAP',
-  RAG_RAW_LIMIT = 'RAG_RAW_LIMIT',
-  WEATHER_CACHE_TTL_MINUTES = 'WEATHER_CACHE_TTL_MINUTES',
-  MAX_DIAGNOSIS_PER_DAY = 'MAX_DIAGNOSIS_PER_DAY',
-  POST_EXPIRE_DAYS = 'POST_EXPIRE_DAYS',
-  BANNED_WORDS = 'BANNED_WORDS',
-}
+// Enums CONFIG_KEY and SYSTEM_CONFIG_KEY have been moved to enums.ts
 
 export const ENV_KEY = {
   PORT: CONFIG_KEY.APP + '.port',
@@ -134,60 +111,14 @@ export const ENV_KEY = {
   COHERE_API_KEY: CONFIG_KEY.COHERE + '.apiKey',
 };
 
-export enum METADATA_KEY {
-  MAX_CONCURRENCY_CALL = 'max_concurrency_call',
-  RATE_LIMITING = 'rate_limiting',
-  USER_ID_EXTRACTOR = 'user_id_extractor',
-  MAX_ATTEMPTS_ALLOWED = 'max_attempts_allowed',
-}
+// Enum METADATA_KEY has been moved to enums.ts
 
 export const DEFAULT_MAX_CONCURRENT_CALL = 1;
 export const DEFAULT_FAILED_ATTEMPTS_BAN = 3;
 
-export enum HEADER_KEY {
-  CAPTCHA_TOKEN = 'X-Captcha-Token',
-  LOG_ID = 'X-Log-ID',
-  SESSION_TOKEN = 'X-Session-Token',
-  ACCESS_KEY_ID = 'X-Access-Key-ID',
-  ACCESS_KEY_SECRET = 'X-Access-Key-Secret',
-  PARTNER_ACCESS_SECRET = 'X-Partner-Access-Secret',
-}
+// Enum HEADER_KEY has been moved to enums.ts
 
-export enum ENTITY_STATUS {
-  ACTIVE = 'active',
-  SUSPENDED = 'suspended',
-  INACTIVE = 'inactive',
-  DELETED = 'deleted',
-}
-
-export enum PARTNER_DIRECTION {
-  INBOUND = 'inbound',
-  OUTBOUND = 'outbound',
-}
-
-export enum PARTNER_TYPE {
-  INTERNAL = 'internal',
-  EXTERNAL = 'external',
-}
-
-export enum PARTNER_AUTH_TYPE {
-  ID_AND_SECRET = 'idAndSecret',
-  MASTER_TOKEN = 'masterToken',
-  API_KEY = 'apiKey',
-}
-
-export enum EMAIL_TEMPLATE {
-  EMAIL_VERIFICATION = 'email-verification',
-  EMAIL_RESET_PASSWORD = 'reset-password',
-}
-
-export enum VERIFY_OTP_ACTION {
-  REGISTER = 'register',
-}
-
-export enum SOCIAL_PROVIDER {
-  GOOGLE = 'google',
-}
+// Enums ENTITY_STATUS, PARTNER_DIRECTION, PARTNER_TYPE, PARTNER_AUTH_TYPE, EMAIL_TEMPLATE, VERIFY_OTP_ACTION, SOCIAL_PROVIDER have been moved to enums.ts
 
 export const CACHE_TTL = {
   ONE_MINUTE: 60,
@@ -207,16 +138,7 @@ export const getStorageFolder = () => ({
   FORUM_COMMENTS: `${process.env.APP_NAME}/images/upload/forum/comments`,
 });
 
-export enum DISEASE_STATUS {
-  VISIBLE = 'visible',
-  HIDDEN = 'hidden',
-}
-
-export enum FEEDBACK_STATUS {
-  PENDING = 'pending',
-  ACCEPTED = 'accepted',
-  REJECTED = 'rejected',
-}
+// Enums DISEASE_STATUS and FEEDBACK_STATUS have been moved to enums.ts
 
 export const VOTE_CONFIG = {
   POST: {

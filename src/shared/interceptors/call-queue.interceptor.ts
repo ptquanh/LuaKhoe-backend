@@ -27,10 +27,9 @@ import { Reflector } from '@nestjs/core';
 import {
   APP_ACTION,
   DEFAULT_MAX_CONCURRENT_CALL,
-  HEADER_KEY,
   INJECTION_TOKEN,
-  METADATA_KEY,
 } from '@shared/constants';
+import { HEADER_KEY, METADATA_KEY } from '@shared/enums';
 
 export const MaxConcurrencyCall = (maxConcurrency: number) =>
   SetMetadata(METADATA_KEY.MAX_CONCURRENCY_CALL, maxConcurrency);

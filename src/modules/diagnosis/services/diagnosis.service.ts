@@ -21,7 +21,8 @@ import { StorageService, StorageType } from '@modules/storage/storage.service';
 import { SystemConfigService } from '@modules/system-config/system-config.service';
 import { UserFieldService } from '@modules/user/services/user-field.service';
 
-import { SYSTEM_CONFIG_KEY, getStorageFolder } from '@shared/constants';
+import { getStorageFolder } from '@shared/constants';
+import { SYSTEM_CONFIG_KEY } from '@shared/enums';
 import { getVietnameseDiseaseName } from '@shared/helpers/disease.helper';
 import {
   generateNotFoundResult,
@@ -798,7 +799,8 @@ export class DiagnosisService extends BaseCRUDService<Diagnosis> {
       severity,
       detections: mappedDetections,
       rag_recommendation: advisory?.advisory || null,
-      annotated_image: updatedDiagnosis.resultImageUrl || diagnosis.originalImageUrl,
+      annotated_image:
+        updatedDiagnosis.resultImageUrl || diagnosis.originalImageUrl,
       supplementImageUrl: updatedDiagnosis.supplementImageUrl,
       supplementAnnotatedImageUrl: updatedDiagnosis.supplementImageUrl,
       low_confidence: confidence < 0.75,

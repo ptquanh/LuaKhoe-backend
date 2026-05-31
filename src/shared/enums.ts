@@ -16,3 +16,93 @@ export enum VOTE_TYPE {
   DOWN = 'DOWN',
   NONE = 'NONE',
 }
+
+export enum ENTITY_STATUS {
+  ACTIVE = 'ACTIVE',
+  SUSPENDED = 'SUSPENDED',
+  INACTIVE = 'INACTIVE',
+  DELETED = 'DELETED',
+}
+
+export enum PARTNER_DIRECTION {
+  INBOUND = 'INBOUND',
+  OUTBOUND = 'OUTBOUND',
+}
+
+export enum PARTNER_TYPE {
+  INTERNAL = 'INTERNAL',
+  EXTERNAL = 'EXTERNAL',
+}
+
+export enum PARTNER_AUTH_TYPE {
+  ID_AND_SECRET = 'ID_AND_SECRET',
+  MASTER_TOKEN = 'MASTER_TOKEN',
+  API_KEY = 'API_KEY',
+}
+
+export enum SOCIAL_PROVIDER {
+  GOOGLE = 'GOOGLE',
+}
+
+export enum DISEASE_STATUS {
+  VISIBLE = 'VISIBLE',
+  HIDDEN = 'HIDDEN',
+}
+
+export enum FEEDBACK_STATUS {
+  PENDING = 'PENDING',
+  ACCEPTED = 'ACCEPTED',
+  REJECTED = 'REJECTED',
+}
+
+export enum VERIFY_OTP_ACTION {
+  REGISTER = 'REGISTER',
+}
+
+export enum SYSTEM_CONFIG_KEY {
+  CONFIDENCE_THRESHOLD = 'CONFIDENCE_THRESHOLD',
+  MAX_IMAGE_SIZE_MB = 'MAX_IMAGE_SIZE_MB',
+  RAG_CONTEXT_WINDOW = 'RAG_CONTEXT_WINDOW',
+  RAG_CHUNK_SIZE = 'RAG_CHUNK_SIZE',
+  RAG_CHUNK_OVERLAP = 'RAG_CHUNK_OVERLAP',
+  RAG_RAW_LIMIT = 'RAG_RAW_LIMIT',
+  WEATHER_CACHE_TTL_MINUTES = 'WEATHER_CACHE_TTL_MINUTES',
+  MAX_DIAGNOSIS_PER_DAY = 'MAX_DIAGNOSIS_PER_DAY',
+  POST_EXPIRE_DAYS = 'POST_EXPIRE_DAYS',
+  BANNED_WORDS = 'BANNED_WORDS',
+}
+
+export enum CONFIG_KEY {
+  APP = 'app',
+  DATABASE = 'database',
+  JWT = 'jwt',
+  REDIS = 'redis',
+  EMAIL = 'email',
+  CLOUDINARY = 'cloudinary',
+  AI_SERVICE = 'aiService',
+  GEMINI = 'gemini',
+  GROQ = 'groq',
+  R2 = 'r2',
+  COHERE = 'cohere',
+}
+
+export enum METADATA_KEY {
+  MAX_CONCURRENCY_CALL = 'max_concurrency_call',
+  RATE_LIMITING = 'rate_limiting',
+  USER_ID_EXTRACTOR = 'user_id_extractor',
+  MAX_ATTEMPTS_ALLOWED = 'max_attempts_allowed',
+}
+
+export enum HEADER_KEY {
+  CAPTCHA_TOKEN = 'X-Captcha-Token',
+  LOG_ID = 'X-Log-ID',
+  SESSION_TOKEN = 'X-Session-Token',
+  ACCESS_KEY_ID = 'X-Access-Key-ID',
+  ACCESS_KEY_SECRET = 'X-Access-Key-Secret',
+  PARTNER_ACCESS_SECRET = 'X-Partner-Access-Secret',
+}
+
+export enum EMAIL_TEMPLATE {
+  EMAIL_VERIFICATION = 'email-verification',
+  EMAIL_RESET_PASSWORD = 'reset-password',
+}

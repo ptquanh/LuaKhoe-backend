@@ -6,7 +6,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 
 import { DiagnosisService } from '@modules/diagnosis/services/diagnosis.service';
 
-import { FEEDBACK_STATUS } from '@shared/constants';
+import { FEEDBACK_STATUS } from '@shared/enums';
 import {
   generateForbiddenResult,
   generateNotFoundResult,

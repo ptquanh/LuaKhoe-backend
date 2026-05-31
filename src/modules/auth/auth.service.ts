@@ -24,13 +24,15 @@ import { otpCacheKey, resetPasswordCacheKey } from '@shared/cache-key';
 import {
   APP_ACTION,
   CACHE_TTL,
-  EMAIL_TEMPLATE,
-  ENTITY_STATUS,
   ENV_KEY,
   ERR_CODE,
   INJECTION_TOKEN,
-  VERIFY_OTP_ACTION,
 } from '@shared/constants';
+import {
+  EMAIL_TEMPLATE,
+  ENTITY_STATUS,
+  VERIFY_OTP_ACTION,
+} from '@shared/enums';
 import {
   generateBadRequestResult,
   generateConflictResult,

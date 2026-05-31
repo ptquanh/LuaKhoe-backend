@@ -2,7 +2,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 
 import { SystemConfigService } from '@modules/system-config/system-config.service';
 
-import { SYSTEM_CONFIG_KEY } from '@shared/constants';
+import { SYSTEM_CONFIG_KEY } from '@shared/enums';
 
 @Injectable()
 export class FileService {

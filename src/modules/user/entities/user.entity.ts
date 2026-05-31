@@ -8,8 +8,7 @@ import {
 } from 'typeorm';
 
 import { AuditWithTimezone } from '@shared/common/audit.entity';
-import { ENTITY_STATUS } from '@shared/constants';
-import { ROLE } from '@shared/enums';
+import { ENTITY_STATUS, ROLE } from '@shared/enums';
 
 import { AdminProfile } from './admin-profile.entity';
 import { FarmerProfile } from './farmer-profile.entity';

@@ -1,7 +1,7 @@
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
 import { AuditWithTimezone } from '@shared/common/audit.entity';
-import { DISEASE_STATUS } from '@shared/constants';
+import { DISEASE_STATUS } from '@shared/enums';
 
 @Entity('diseases')
 export class Disease extends AuditWithTimezone {

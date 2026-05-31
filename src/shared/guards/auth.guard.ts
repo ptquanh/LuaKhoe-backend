@@ -11,7 +11,7 @@ import { JwtService } from '@nestjs/jwt';
 import { User } from '@modules/user/entities/user.entity';
 import { UserService } from '@modules/user/services/user.service';
 
-import { ENTITY_STATUS } from '@shared/constants';
+import { ENTITY_STATUS } from '@shared/enums';
 
 @Injectable()
 export class AuthGuard implements CanActivate {

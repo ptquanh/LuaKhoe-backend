@@ -2,7 +2,7 @@ import { IsArray, IsEnum, IsOptional, IsString, IsUUID } from 'class-validator';
 
 import { ApiProperty } from '@nestjs/swagger';
 
-import { FEEDBACK_STATUS } from '@shared/constants';
+import { FEEDBACK_STATUS } from '@shared/enums';
 
 export class CreateFeedbackDto {
   @ApiProperty({ example: 'diagnosis-uuid' })

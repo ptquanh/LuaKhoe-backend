@@ -5,7 +5,8 @@ import { ConfigService } from '@nestjs/config';
 
 import { SystemConfigService } from '@modules/system-config/system-config.service';
 
-import { ENV_KEY, SYSTEM_CONFIG_KEY } from '@shared/constants';
+import { ENV_KEY } from '@shared/constants';
+import { SYSTEM_CONFIG_KEY } from '@shared/enums';
 
 @Injectable()
 export class ModerationService {

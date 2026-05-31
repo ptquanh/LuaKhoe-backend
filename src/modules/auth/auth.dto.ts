@@ -15,16 +15,12 @@ import { OperationResult } from 'mvc-common-toolkit';
 
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
-import {
-  ERR_CODE,
-  RESERVED_USERNAMES,
-  SOCIAL_PROVIDER,
-  VERIFY_OTP_ACTION,
-} from '@shared/constants';
+import { ERR_CODE, RESERVED_USERNAMES } from '@shared/constants';
 import {
   OnlyTextAndNumbers,
   TrimAndLowercase,
 } from '@shared/decorators/sanitize-input.decorator';
+import { SOCIAL_PROVIDER, VERIFY_OTP_ACTION } from '@shared/enums';
 import { generateBadRequestResult } from '@shared/helpers/operation-result.helper';
 
 export class RegisterDTO {

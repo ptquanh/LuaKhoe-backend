@@ -1,4 +1,5 @@
-import { ENV_KEY, SOCIAL_PROVIDER } from '@shared/constants';
+import { ENV_KEY } from '@shared/constants';
+import { SOCIAL_PROVIDER } from '@shared/enums';
 
 export const SOCIAL_CONFIG = {
   [SOCIAL_PROVIDER.GOOGLE]: {

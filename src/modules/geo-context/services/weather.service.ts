@@ -7,7 +7,8 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { SystemConfigService } from '@modules/system-config/system-config.service';
 
 import { weatherCacheKey } from '@shared/cache-key';
-import { INJECTION_TOKEN, SYSTEM_CONFIG_KEY } from '@shared/constants';
+import { INJECTION_TOKEN } from '@shared/constants';
+import { SYSTEM_CONFIG_KEY } from '@shared/enums';
 import { WeatherInfo } from '@shared/interfaces';
 
 @Injectable()
