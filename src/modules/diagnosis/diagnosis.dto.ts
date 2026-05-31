@@ -16,31 +16,58 @@ export class FieldParamsDto {
   @ApiPropertyOptional({ example: 'Bình thường' })
   @IsOptional()
   @IsString()
+  @Transform(({ value }) =>
+    value === '' || value === null ? undefined : value,
+  )
   water?: string;
 
   @ApiPropertyOptional({ example: 'Đẻ nhánh' })
   @IsOptional()
   @IsString()
+  @Transform(({ value }) =>
+    value === '' || value === null ? undefined : value,
+  )
   growth?: string;
 
   @ApiPropertyOptional({ example: 'Vừa' })
   @IsOptional()
   @IsString()
+  @Transform(({ value }) =>
+    value === '' || value === null ? undefined : value,
+  )
   density?: string;
 
   @ApiPropertyOptional({ example: false })
   @IsOptional()
   @IsBoolean()
+  @Transform(({ value }) => {
+    if (value === null || value === undefined || value === '') return undefined;
+    if (value === 'true' || value === true) return true;
+    if (value === 'false' || value === false) return false;
+    return undefined;
+  })
   fog?: boolean;
 
   @ApiPropertyOptional({ example: false })
   @IsOptional()
   @IsBoolean()
+  @Transform(({ value }) => {
+    if (value === null || value === undefined || value === '') return undefined;
+    if (value === 'true' || value === true) return true;
+    if (value === 'false' || value === false) return false;
+    return undefined;
+  })
   leafhopper?: boolean;
 
   @ApiPropertyOptional({ example: false })
   @IsOptional()
   @IsBoolean()
+  @Transform(({ value }) => {
+    if (value === null || value === undefined || value === '') return undefined;
+    if (value === 'true' || value === true) return true;
+    if (value === 'false' || value === false) return false;
+    return undefined;
+  })
   pesticide?: boolean;
 }
 
