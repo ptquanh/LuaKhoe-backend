@@ -411,7 +411,7 @@ export class DiagnosisService extends BaseCRUDService<Diagnosis> {
       } else if (dto.feedbackStatus === 'Chờ phản hồi') {
         query.andWhere('feedback.status = :fStatus', { fStatus: 'PENDING' });
       } else if (dto.feedbackStatus === 'Đã duyệt') {
-        query.andWhere('feedback.status = :fStatus', { fStatus: 'ACCEPTED' });
+        query.andWhere('feedback.status = :fStatus', { fStatus: 'APPROVED' });
       } else if (dto.feedbackStatus === 'Đã từ chối') {
         query.andWhere('feedback.status = :fStatus', { fStatus: 'REJECTED' });
       } else if (dto.feedbackStatus === 'Chưa gửi phản hồi') {

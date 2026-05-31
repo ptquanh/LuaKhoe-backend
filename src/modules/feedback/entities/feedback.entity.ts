@@ -39,8 +39,11 @@ export class Feedback extends AuditWithTimezone {
   @Column({ name: 'user_id', type: 'uuid' })
   userId: string;
 
-  @Column({ name: 'user_message', type: 'text', nullable: true })
-  userMessage: string;
+  @Column({ type: 'smallint', nullable: true })
+  rating: number;
+
+  @Column({ type: 'text', nullable: true })
+  content: string;
 
   @Index()
   @Column({ type: 'varchar', default: FEEDBACK_STATUS.PENDING })

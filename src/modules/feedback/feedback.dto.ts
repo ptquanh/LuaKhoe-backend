@@ -1,6 +1,15 @@
-import { IsArray, IsEnum, IsOptional, IsString, IsUUID } from 'class-validator';
+import {
+  IsArray,
+  IsEnum,
+  IsInt,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Max,
+  Min,
+} from 'class-validator';
 
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 import { FEEDBACK_STATUS } from '@shared/enums';
 
@@ -9,12 +18,18 @@ export class CreateFeedbackDto {
   @IsUUID()
   diagnosisId: string;
 
-  @ApiProperty({
-    example: 'The AI missed the blast disease on the left corner.',
+  @ApiProperty({ example: 4, minimum: 1, maximum: 5 })
+  @IsInt()
+  @Min(1)
+  @Max(5)
+  rating: number;
+
+  @ApiPropertyOptional({
+    example: 'AI chẩn đoán thiếu bệnh ở góc phải.',
   })
   @IsOptional()
   @IsString()
-  userMessage?: string;
+  content?: string;
 
   @ApiProperty({ type: [String], example: ['disease-uuid-1'] })
   @IsArray()
@@ -25,7 +40,7 @@ export class CreateFeedbackDto {
 export class ProcessFeedbackDto {
   @ApiProperty({
     enum: FEEDBACK_STATUS,
-    example: FEEDBACK_STATUS.ACCEPTED,
+    example: FEEDBACK_STATUS.APPROVED,
     description: 'Feedback status (accepted or rejected)',
   })
   @IsEnum(FEEDBACK_STATUS)

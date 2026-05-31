@@ -48,6 +48,14 @@ export class FeedbackService extends BaseCRUDService<Feedback> {
       );
     }
 
+    // Content-based moderation:
+    // - No text (star-only) → safe, auto-approve immediately
+    // - Has text → potential spam/toxic risk → queue for admin review
+    const hasTextContent = dto.content && dto.content.trim().length > 0;
+    const initialStatus = hasTextContent
+      ? FEEDBACK_STATUS.PENDING
+      : FEEDBACK_STATUS.APPROVED;
+
     const actualDiseases = (dto.actualDiseaseIds || []).map((diseaseId) => ({
       diseaseId,
     }));
@@ -55,8 +63,9 @@ export class FeedbackService extends BaseCRUDService<Feedback> {
     const savedFeedback = await this.create({
       userId,
       diagnosisId: dto.diagnosisId,
-      userMessage: dto.userMessage,
-      status: FEEDBACK_STATUS.PENDING,
+      rating: dto.rating,
+      content: dto.content || null,
+      status: initialStatus,
       actualDiseases: actualDiseases as any,
     });
 
