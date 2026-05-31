@@ -14,7 +14,6 @@ import { VOTE_TYPE } from '@shared/enums';
 import { Comment } from './comment.entity';
 
 @Entity('comment_votes')
-@Index(['commentId', 'userId'], { unique: true })
 export class CommentVote {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -23,6 +22,7 @@ export class CommentVote {
   commentId: string;
 
   @Column({ name: 'user_id', type: 'uuid' })
+  @Index()
   userId: string;
 
   @Column({ type: 'varchar', length: 10 })
@@ -30,6 +30,7 @@ export class CommentVote {
 
   @ManyToOne(() => Comment, (comment) => comment.votes, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'comment_id' })
+  @Index()
   comment: Comment;
 
   @ManyToOne(() => User)

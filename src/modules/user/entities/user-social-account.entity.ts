@@ -12,7 +12,6 @@ import { AuditWithTimezone } from '@shared/common/audit.entity';
 import { User } from './user.entity';
 
 @Entity('user_social_accounts')
-@Index(['userId', 'provider'], { unique: true })
 export class UserSocialAccount extends AuditWithTimezone {
   @PrimaryGeneratedColumn('uuid')
   id: string;
