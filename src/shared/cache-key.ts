@@ -1,7 +1,9 @@
+import { VERIFY_OTP_ACTION } from './enums';
+
 export const resetPasswordCacheKey = (email: string) =>
   `auth:reset_password:user_email:${email}`;
 
-export const otpCacheKey = (id: string, action: string) =>
+export const otpCacheKey = (id: string, action: VERIFY_OTP_ACTION) =>
   `auth:otp:user_id:${id}:action:${action}`;
 
 export const geocodeCacheKey = (lat: number, lng: number) =>

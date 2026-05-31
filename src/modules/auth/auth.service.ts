@@ -243,7 +243,7 @@ export class AuthService {
 
       await this.cacheService.del(cacheKey);
 
-      if (dto.action === APP_ACTION.REGISTER) {
+      if (dto.action === VERIFY_OTP_ACTION.REGISTER) {
         await this.userService.updateByID(user.id, {
           status: ENTITY_STATUS.ACTIVE,
         });
