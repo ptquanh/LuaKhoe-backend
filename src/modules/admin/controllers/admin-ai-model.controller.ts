@@ -29,6 +29,7 @@ import {
 } from '@modules/ai-model/ai-model.dto';
 
 import { PaginationDTO } from '@shared/common/pagination.dto';
+import { BulkDeleteDto } from '@shared/common/bulk-delete.dto';
 import { RequestUser } from '@shared/decorators/request-user.decorator';
 import { Roles } from '@shared/decorators/roles.decorator';
 import { ROLE } from '@shared/enums';
@@ -96,6 +97,16 @@ export class AdminAiModelController {
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<HttpResponse> {
     return this.adminAiModelService.deleteModel(id);
+  }
+
+  @Delete()
+  @ApiOperation({ summary: 'Bulk Delete inactive AI models (Admin only)' })
+  @UseCallQueue()
+  @ApplyRateLimiting(5)
+  async bulkDeleteModels(
+    @Body() dto: BulkDeleteDto,
+  ): Promise<HttpResponse> {
+    return this.adminAiModelService.bulkDeleteModels(dto.ids);
   }
 
   @Patch(':id')

@@ -28,6 +28,7 @@ import {
   SystemConfigKeyParamDto,
   UpdateSystemConfigDto,
 } from '../dtos/admin-system-configs.dto';
+import { BulkDeleteConfigDto } from '@shared/common/bulk-delete-config.dto';
 import { AdminSystemConfigsService } from '../services/admin-system-configs.service';
 
 @ApiTags('Admin System Configs')
@@ -109,5 +110,18 @@ export class AdminSystemConfigsController {
         `Configuration with key "${params.key}" not found`,
       );
     }
+  }
+
+  @Delete()
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+    summary: 'Bulk Delete system configurations by keys (Admin only)',
+  })
+  @UseCallQueue()
+  @ApplyRateLimiting(10)
+  async bulkDeleteConfigs(
+    @Body() dto: BulkDeleteConfigDto,
+  ): Promise<void> {
+    await this.adminSystemConfigsService.bulkDeleteConfigs(dto.keys);
   }
 }

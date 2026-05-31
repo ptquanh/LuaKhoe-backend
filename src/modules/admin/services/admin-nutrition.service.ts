@@ -1,4 +1,8 @@
+import { HttpResponse } from 'mvc-common-toolkit';
+
 import { Injectable } from '@nestjs/common';
+
+import { generateSuccessResult } from '@shared/helpers/operation-result.helper';
 
 import {
   DocumentFilterDto,
@@ -28,6 +32,15 @@ export class AdminNutritionService {
 
   async deleteByID(id: string) {
     return this.nutritionService.deleteByID(id);
+  }
+
+  async bulkDeleteChunks(ids: string[]): Promise<HttpResponse> {
+    await this.nutritionService.bulkHardDeleteByIDs(ids);
+    await this.nutritionService.invalidateSemanticCache();
+    return generateSuccessResult({
+      deleted: ids.length,
+      message: `Đã xóa ${ids.length} tài liệu dinh dưỡng thành công`,
+    });
   }
 
   async seedKnowledge(documents: SeedNutritionDocDto[]) {

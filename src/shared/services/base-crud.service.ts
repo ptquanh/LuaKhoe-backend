@@ -309,4 +309,22 @@ export abstract class BaseCRUDService<T extends ObjectLiteral> {
 
     return this.findOne(filter);
   }
+
+  public async bulkDeleteByIDs(
+    ids: (number | string)[],
+  ): Promise<void> {
+    if (!ids?.length) {
+      throw new InternalServerErrorException('ids list must not be empty');
+    }
+    await this.model.softDelete({ id: Any(ids) as any } as any);
+  }
+
+  public async bulkHardDeleteByIDs(
+    ids: (number | string)[],
+  ): Promise<void> {
+    if (!ids?.length) {
+      throw new InternalServerErrorException('ids list must not be empty');
+    }
+    await this.model.delete({ id: Any(ids) as any } as any);
+  }
 }

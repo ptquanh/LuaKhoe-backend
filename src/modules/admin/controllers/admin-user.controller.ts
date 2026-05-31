@@ -14,6 +14,8 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { GetUsersAdminDTO, UpdateUserStatusDTO } from '@modules/user/user.dto';
 
+import { BulkDeleteDto } from '@shared/common/bulk-delete.dto';
+
 import { Roles } from '@shared/decorators/roles.decorator';
 import { ROLE } from '@shared/enums';
 import { AuthGuard } from '@shared/guards/auth.guard';
@@ -63,5 +65,18 @@ export class AdminUserController {
   @ApplyRateLimiting(5)
   async deleteUser(@Param('id') id: string): Promise<HttpResponse> {
     return this.adminUserService.deleteUser(id);
+  }
+
+  @Delete()
+  @ApiOperation({
+    summary: 'Bulk Delete Users (Admin only)',
+    description: 'Permanently delete multiple users by IDs',
+  })
+  @UseCallQueue()
+  @ApplyRateLimiting(5)
+  async bulkDeleteUsers(
+    @Body() dto: BulkDeleteDto,
+  ): Promise<HttpResponse> {
+    return this.adminUserService.bulkDeleteUsers(dto.ids);
   }
 }

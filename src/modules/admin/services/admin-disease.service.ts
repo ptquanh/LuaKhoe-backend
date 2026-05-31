@@ -48,4 +48,12 @@ export class AdminDiseaseService {
     await this.diseaseService.deleteByID(id);
     return generateSuccessResult(null, 'Disease deleted successfully');
   }
+
+  async bulkDeleteDiseases(ids: string[]): Promise<HttpResponse> {
+    await this.diseaseService.bulkHardDeleteByIDs(ids);
+    return generateSuccessResult({
+      deleted: ids.length,
+      message: `Đã xóa ${ids.length} bệnh thành công`,
+    });
+  }
 }

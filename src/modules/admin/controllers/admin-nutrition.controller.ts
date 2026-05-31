@@ -24,6 +24,9 @@ import { Roles } from '@shared/decorators/roles.decorator';
 import { ROLE } from '@shared/enums';
 import { AuthGuard } from '@shared/guards/auth.guard';
 import { RolesGuard } from '@shared/guards/roles.guard';
+import { HttpResponse } from 'mvc-common-toolkit';
+
+import { BulkDeleteDto } from '@shared/common/bulk-delete.dto';
 import { generateSuccessResult } from '@shared/helpers/operation-result.helper';
 import { UseCallQueue } from '@shared/interceptors/call-queue.interceptor';
 import { ApplyRateLimiting } from '@shared/interceptors/rate-limiting.interceptor';
@@ -86,6 +89,16 @@ export class AdminNutritionController {
   async deleteChunk(@Param('id') id: string) {
     await this.adminNutritionService.deleteByID(id);
     return generateSuccessResult({ message: 'Deleted successfully' });
+  }
+
+  @Delete()
+  @ApiOperation({
+    summary: 'Bulk Delete Nutrition knowledge documents (Admin only)',
+  })
+  @UseCallQueue()
+  @ApplyRateLimiting(10)
+  async bulkDeleteChunks(@Body() dto: BulkDeleteDto): Promise<HttpResponse> {
+    return this.adminNutritionService.bulkDeleteChunks(dto.ids);
   }
 
   @Post('seed')

@@ -5,6 +5,8 @@ import { Injectable } from '@nestjs/common';
 import { UserService } from '@modules/user/services/user.service';
 import { GetUsersAdminDTO, UpdateUserStatusDTO } from '@modules/user/user.dto';
 
+import { generateSuccessResult } from '@shared/helpers/operation-result.helper';
+
 @Injectable()
 export class AdminUserService {
   constructor(private readonly userService: UserService) {}
@@ -22,5 +24,13 @@ export class AdminUserService {
 
   async deleteUser(id: string): Promise<HttpResponse> {
     return this.userService.deleteUserForAdmin(id);
+  }
+
+  async bulkDeleteUsers(ids: string[]): Promise<HttpResponse> {
+    await this.userService.bulkHardDeleteByIDs(ids);
+    return generateSuccessResult({
+      deleted: ids.length,
+      message: `Đã xóa ${ids.length} người dùng thành công`,
+    });
   }
 }

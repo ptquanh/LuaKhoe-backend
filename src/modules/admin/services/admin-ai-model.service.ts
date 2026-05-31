@@ -49,4 +49,8 @@ export class AdminAiModelService {
   ): Promise<HttpResponse> {
     return this.aiModelService.updateModel(id, data, file);
   }
+
+  async bulkDeleteModels(ids: string[]): Promise<HttpResponse> {
+    return this.aiModelService.bulkDeleteModels(ids);
+  }
 }

@@ -1,3 +1,5 @@
+import { HttpResponse } from 'mvc-common-toolkit';
+
 import {
   Body,
   Controller,
@@ -26,6 +28,7 @@ import {
 } from '@modules/disease/disease.dto';
 
 import { PaginatedByKeywordDTO } from '@shared/common/pagination.dto';
+import { BulkDeleteDto } from '@shared/common/bulk-delete.dto';
 import { Roles } from '@shared/decorators/roles.decorator';
 import { ROLE } from '@shared/enums';
 import { AuthGuard } from '@shared/guards/auth.guard';
@@ -86,5 +89,13 @@ export class AdminDiseaseController {
   @ApplyRateLimiting(10)
   async deleteDisease(@Param() params: FindOneDiseaseParamDTO) {
     return this.adminDiseaseService.deleteDisease(params.id);
+  }
+
+  @Delete()
+  @ApiOperation({ summary: 'Bulk Delete Diseases (Admin only)' })
+  async bulkDeleteDiseases(
+    @Body() dto: BulkDeleteDto,
+  ): Promise<HttpResponse> {
+    return this.adminDiseaseService.bulkDeleteDiseases(dto.ids);
   }
 }

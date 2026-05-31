@@ -1,5 +1,5 @@
 import { CacheService, SET_CACHE_POLICY } from 'mvc-common-toolkit';
-import { Repository } from 'typeorm';
+import { Any, Repository } from 'typeorm';
 
 import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -240,5 +240,25 @@ export class SystemConfigService
     }
     await this.deleteByID(config.id);
     return true;
+  }
+
+  async bulkDeleteConfigs(keys: string[]): Promise<void> {
+    const upperKeys = keys.map((k) => k.toUpperCase().replace(/-/g, '_'));
+    const configs = await this.findAll({ key: Any(upperKeys) });
+
+    if (configs.length > 0) {
+      const ids = configs.map((c) => c.id);
+      await this.bulkDeleteByIDs(ids);
+
+      for (const config of configs) {
+        try {
+          await this.cacheService.del(systemConfigCacheKey(config.key));
+        } catch (err) {
+          this.logger.warn(
+            `Failed to delete cache for key system_config:${config.key}: ${err.message}`,
+          );
+        }
+      }
+    }
   }
 }

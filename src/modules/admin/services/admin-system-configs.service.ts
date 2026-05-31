@@ -31,6 +31,10 @@ export class AdminSystemConfigsService {
     return this.systemConfigService.deleteByKey(key);
   }
 
+  async bulkDeleteConfigs(keys: string[]): Promise<void> {
+    await this.systemConfigService.bulkDeleteConfigs(keys);
+  }
+
   async get(key: string): Promise<string | null> {
     return this.systemConfigService.get(key);
   }

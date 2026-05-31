@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import { HttpResponse } from 'mvc-common-toolkit';
 import * as path from 'path';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 
 import {
   BadRequestException,
@@ -234,5 +234,37 @@ export class AiModelService extends BaseCRUDService<AiModel> {
     }
 
     return generateSuccessResult(updatedModel);
+  }
+
+  async bulkDeleteModels(ids: string[]): Promise<HttpResponse<any>> {
+    const models = await this.aiModelRepo.find({
+      where: { id: In(ids) },
+    });
+
+    for (const model of models) {
+      if (model.isActive) {
+        throw new BadRequestException(
+          `Không thể xóa mô hình AI "${model.versionName}" đang ở trạng thái hoạt động.`,
+        );
+      }
+    }
+
+    for (const model of models) {
+      if (model.filePath) {
+        try {
+          await this.storageService.deleteFile(model.filePath, StorageType.R2);
+        } catch (err) {
+          console.error(
+            `Failed to delete ONNX model file from R2 for model ${model.id}: ${err.message}`,
+          );
+        }
+      }
+    }
+
+    await this.bulkHardDeleteByIDs(ids);
+    return generateSuccessResult({
+      deleted: ids.length,
+      message: `Đã xóa ${ids.length} mô hình AI thành công.`,
+    });
   }
 }
