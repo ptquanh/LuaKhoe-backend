@@ -42,3 +42,5 @@ export const semanticCacheKey = (
 
   return `semantic_cache:diagnosis:diseases:${sortedDiseases}:area:${areaStr}`;
 };
+
+export const semanticCacheKeysListKey = 'semantic_cache_keys';

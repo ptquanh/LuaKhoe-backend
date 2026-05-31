@@ -17,7 +17,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 
 import { SystemConfigService } from '@modules/system-config/system-config.service';
 
-import { semanticCacheKey } from '@shared/cache-key';
+import { semanticCacheKey, semanticCacheKeysListKey } from '@shared/cache-key';
 import { ENV_KEY, INJECTION_TOKEN } from '@shared/constants';
 import { SYSTEM_CONFIG_KEY } from '@shared/enums';
 import { generateSuccessResult } from '@shared/helpers/operation-result.helper';
@@ -547,12 +547,12 @@ Yêu cầu BẮT BUỘC:
         await this.cacheService.set(cacheKey, JSON.stringify(finalResult));
 
         // Add to active keys tracking list
-        const keysStr = await this.cacheService.get('semantic_cache_keys');
+        const keysStr = await this.cacheService.get(semanticCacheKeysListKey);
         const keys = keysStr ? JSON.parse(keysStr) : [];
         if (!keys.includes(cacheKey)) {
           keys.push(cacheKey);
           await this.cacheService.set(
-            'semantic_cache_keys',
+            semanticCacheKeysListKey,
             JSON.stringify(keys),
           );
         }
@@ -567,14 +567,14 @@ Yêu cầu BẮT BUỘC:
   async invalidateSemanticCache() {
     this.logger.log('Invalidating semantic cache...');
     try {
-      const keysStr = await this.cacheService.get('semantic_cache_keys');
+      const keysStr = await this.cacheService.get(semanticCacheKeysListKey);
       if (keysStr) {
         const keys = JSON.parse(keysStr);
         for (const key of keys) {
           await this.cacheService.del(key);
         }
       }
-      await this.cacheService.del('semantic_cache_keys');
+      await this.cacheService.del(semanticCacheKeysListKey);
       this.logger.log('Semantic cache invalidated successfully.');
     } catch (err) {
       this.logger.error(`Failed to invalidate semantic cache: ${err.message}`);
