@@ -41,7 +41,7 @@ export class ProcessFeedbackDto {
   @ApiProperty({
     enum: FEEDBACK_STATUS,
     example: FEEDBACK_STATUS.APPROVED,
-    description: 'Feedback status (accepted or rejected)',
+    description: 'Feedback status (approved or rejected)',
   })
   @IsEnum(FEEDBACK_STATUS)
   status: FEEDBACK_STATUS;
