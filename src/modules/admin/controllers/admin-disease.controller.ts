@@ -30,6 +30,8 @@ import { Roles } from '@shared/decorators/roles.decorator';
 import { ROLE } from '@shared/enums';
 import { AuthGuard } from '@shared/guards/auth.guard';
 import { RolesGuard } from '@shared/guards/roles.guard';
+import { UseCallQueue } from '@shared/interceptors/call-queue.interceptor';
+import { ApplyRateLimiting } from '@shared/interceptors/rate-limiting.interceptor';
 
 import { AdminDiseaseService } from '../services/admin-disease.service';
 
@@ -51,6 +53,8 @@ export class AdminDiseaseController {
 
   @Post()
   @ApiOperation({ summary: 'Create a new disease (Admin only)' })
+  @UseCallQueue()
+  @ApplyRateLimiting(10)
   async createDisease(@Body() dto: CreateDiseaseDTO) {
     return this.adminDiseaseService.createDisease(dto);
   }
@@ -59,12 +63,16 @@ export class AdminDiseaseController {
   @UseInterceptors(FileInterceptor('image'))
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Upload disease image to Cloudinary (Admin only)' })
+  @UseCallQueue()
+  @ApplyRateLimiting(10)
   async uploadImage(@UploadedFile() file: Express.Multer.File) {
     return this.adminDiseaseService.uploadImage(file);
   }
 
   @Put(':id')
   @ApiOperation({ summary: 'Update a disease by ID (Admin only)' })
+  @UseCallQueue()
+  @ApplyRateLimiting(10)
   async updateDisease(
     @Param() params: FindOneDiseaseParamDTO,
     @Body() dto: UpdateDiseaseDTO,
@@ -74,6 +82,8 @@ export class AdminDiseaseController {
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a disease by ID (Admin only)' })
+  @UseCallQueue()
+  @ApplyRateLimiting(10)
   async deleteDisease(@Param() params: FindOneDiseaseParamDTO) {
     return this.adminDiseaseService.deleteDisease(params.id);
   }

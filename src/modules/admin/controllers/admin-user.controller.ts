@@ -18,6 +18,8 @@ import { Roles } from '@shared/decorators/roles.decorator';
 import { ROLE } from '@shared/enums';
 import { AuthGuard } from '@shared/guards/auth.guard';
 import { RolesGuard } from '@shared/guards/roles.guard';
+import { UseCallQueue } from '@shared/interceptors/call-queue.interceptor';
+import { ApplyRateLimiting } from '@shared/interceptors/rate-limiting.interceptor';
 
 import { AdminUserService } from '../services/admin-user.service';
 
@@ -43,6 +45,8 @@ export class AdminUserController {
     summary: 'Update User Status (Admin only)',
     description: 'Ban or unban a user with a reason',
   })
+  @UseCallQueue()
+  @ApplyRateLimiting(10)
   async updateUserStatus(
     @Param('id') id: string,
     @Body() dto: UpdateUserStatusDTO,
@@ -55,6 +59,8 @@ export class AdminUserController {
     summary: 'Delete User (Admin only)',
     description: 'Permanently delete a user and all their associated data',
   })
+  @UseCallQueue()
+  @ApplyRateLimiting(5)
   async deleteUser(@Param('id') id: string): Promise<HttpResponse> {
     return this.adminUserService.deleteUser(id);
   }

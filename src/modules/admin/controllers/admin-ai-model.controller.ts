@@ -34,6 +34,8 @@ import { Roles } from '@shared/decorators/roles.decorator';
 import { ROLE } from '@shared/enums';
 import { AuthGuard } from '@shared/guards/auth.guard';
 import { RolesGuard } from '@shared/guards/roles.guard';
+import { UseCallQueue } from '@shared/interceptors/call-queue.interceptor';
+import { ApplyRateLimiting } from '@shared/interceptors/rate-limiting.interceptor';
 import { UserAuthProfile } from '@shared/interfaces';
 
 import { AdminAiModelService } from '../services/admin-ai-model.service';
@@ -58,6 +60,8 @@ export class AdminAiModelController {
   })
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(FileInterceptor('file'))
+  @UseCallQueue()
+  @ApplyRateLimiting(3)
   async createModel(
     @RequestUser() user: UserAuthProfile,
     @UploadedFile() file: Express.Multer.File,
@@ -70,6 +74,8 @@ export class AdminAiModelController {
   @ApiOperation({
     summary: 'Set an AI model as active (triggers hot-reload) (Admin only)',
   })
+  @UseCallQueue()
+  @ApplyRateLimiting(3)
   async setActive(
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<HttpResponse> {
@@ -84,6 +90,8 @@ export class AdminAiModelController {
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete an inactive AI model (Admin only)' })
+  @UseCallQueue()
+  @ApplyRateLimiting(5)
   async deleteModel(
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<HttpResponse> {
@@ -96,6 +104,8 @@ export class AdminAiModelController {
   })
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(FileInterceptor('file'))
+  @UseCallQueue()
+  @ApplyRateLimiting(5)
   async updateModel(
     @Param('id', ParseUUIDPipe) id: string,
     @UploadedFile() file: Express.Multer.File,

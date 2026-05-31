@@ -25,6 +25,7 @@ import { getStorageFolder } from '@shared/constants';
 import { RequestUser } from '@shared/decorators/request-user.decorator';
 import { AuthGuard } from '@shared/guards/auth.guard';
 import { OptionalAuthGuard } from '@shared/guards/optional-auth.guard';
+import { UseCallQueue } from '@shared/interceptors/call-queue.interceptor';
 import { ApplyRateLimiting } from '@shared/interceptors/rate-limiting.interceptor';
 import { UserAuthProfile } from '@shared/interfaces';
 
@@ -99,6 +100,7 @@ export class UserController {
     description: 'Update user profile details',
   })
   @ApplyRateLimiting(5)
+  @UseCallQueue()
   async updateProfile(
     @RequestUser() user: UserAuthProfile,
     @Body() dto: UpdateUserProfileDTO,
@@ -128,6 +130,7 @@ export class UserController {
     }),
   )
   @ApplyRateLimiting(5)
+  @UseCallQueue()
   async uploadAvatar(
     @RequestUser() user: UserAuthProfile,
     @UploadedFile() file: Express.Multer.File,

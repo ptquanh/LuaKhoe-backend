@@ -121,6 +121,8 @@ export class AuthController {
   @ApiOperation({ summary: 'Change password' })
   @UseGuards(AuthGuard)
   @ApiBearerAuth()
+  @UseCallQueue()
+  @ApplyRateLimiting(3)
   @Post('change-password')
   public async changePassword(
     @LogId() logId: string,
@@ -152,6 +154,7 @@ export class AuthController {
 
   @ApiOperation({ summary: 'Handle provider callback for social login' })
   @Get('login/social/callback')
+  @ApplyRateLimiting(10)
   public async handleSocialCallback(
     @Query() dto: SocialAccountDTO,
   ): Promise<HttpResponse> {

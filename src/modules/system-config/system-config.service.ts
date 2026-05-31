@@ -84,6 +84,36 @@ export class SystemConfigService
         value: JSON.stringify(['chửi thề', 'thuốc giả', 'lừa đảo']),
         description: 'List of banned keywords on the forum (JSON array)',
       },
+      {
+        key: SYSTEM_CONFIG_KEY.AI_AUTO_MODERATION_ENABLED,
+        value: 'false',
+        description:
+          'Trạng thái hoạt động của tự động hóa AI kiểm duyệt bài viết và bình luận trực tiếp',
+      },
+      {
+        key: SYSTEM_CONFIG_KEY.AI_MODERATION_POST_ROLES,
+        value: JSON.stringify(['FARMER']),
+        description:
+          'Danh sách các vai trò cần được AI lọc và kiểm duyệt trước khi đăng bài viết (JSON array)',
+      },
+      {
+        key: SYSTEM_CONFIG_KEY.AI_MODERATION_COMMENT_ROLES,
+        value: JSON.stringify(['FARMER']),
+        description:
+          'Danh sách các vai trò cần được AI lọc và kiểm duyệt trước khi bình luận (JSON array)',
+      },
+      {
+        key: SYSTEM_CONFIG_KEY.AI_CRON_MODERATION_ENABLED,
+        value: 'false',
+        description:
+          'Trạng thái hoạt động của Cron Job quét duyệt bài viết và bình luận chạy nền',
+      },
+      {
+        key: SYSTEM_CONFIG_KEY.AI_CRON_DELAY_MINUTES,
+        value: '15',
+        description:
+          'Số phút trễ trước khi quét các bài viết/bình luận PENDING',
+      },
     ];
 
     for (const item of defaults) {

@@ -12,6 +12,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 
 import { StorageService } from '@modules/storage/storage.service';
+import { SystemConfigService } from '@modules/system-config/system-config.service';
 import { FarmerProfile } from '@modules/user/entities/farmer-profile.entity';
 import { User } from '@modules/user/entities/user.entity';
 import { UserService } from '@modules/user/services/user.service';
@@ -22,7 +23,7 @@ import {
   VOTE_CONFIG,
   getStorageFolder,
 } from '@shared/constants';
-import { POST_STATUS, ROLE, VOTE_TYPE } from '@shared/enums';
+import { POST_STATUS, ROLE, SYSTEM_CONFIG_KEY, VOTE_TYPE } from '@shared/enums';
 import { handleVote } from '@shared/helpers/vote-handler.helper';
 
 import {
@@ -50,6 +51,7 @@ export class PostService implements OnModuleInit {
     private readonly eventEmitter: EventEmitter2,
     private readonly notificationService: NotificationService,
     private readonly userService: UserService,
+    private readonly systemConfigService: SystemConfigService,
   ) {}
 
   onModuleInit() {
@@ -157,13 +159,34 @@ Output STRICTLY as a JSON object:
 
     const isDraft = dto.isDraft === true;
 
+    const isAutoEnabled =
+      (await this.systemConfigService.get(
+        SYSTEM_CONFIG_KEY.AI_AUTO_MODERATION_ENABLED,
+      )) === 'true';
+    const postRolesStr = await this.systemConfigService.get(
+      SYSTEM_CONFIG_KEY.AI_MODERATION_POST_ROLES,
+    );
+    let postRoles: string[] = ['FARMER'];
+    if (postRolesStr) {
+      try {
+        const parsed = JSON.parse(postRolesStr);
+        if (Array.isArray(parsed)) {
+          postRoles = parsed;
+        }
+      } catch {
+        postRoles = ['FARMER'];
+      }
+    }
+
     if (isDraft) {
       status = POST_STATUS.DRAFT;
     } else if (isAdmin) {
       status = POST_STATUS.APPROVED;
       isAdminPost = true;
-    } else {
+    } else if (isAutoEnabled && postRoles.includes(userRole)) {
       status = POST_STATUS.PENDING;
+    } else {
+      status = POST_STATUS.APPROVED;
     }
 
     const post = this.postRepository.create({
@@ -194,7 +217,7 @@ Output STRICTLY as a JSON object:
       }
     }
 
-    if (!isDraft && !isAdmin) {
+    if (status === POST_STATUS.PENDING) {
       this.eventEmitter.emit(EVENT_KEYS.POST_CREATED, { postId: savedPost.id });
     }
 

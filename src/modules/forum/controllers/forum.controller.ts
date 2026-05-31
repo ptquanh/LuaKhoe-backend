@@ -23,6 +23,8 @@ import { ROLE } from '@shared/enums';
 import { AuthGuard } from '@shared/guards/auth.guard';
 import { OptionalAuthGuard } from '@shared/guards/optional-auth.guard';
 import { generateSuccessResult } from '@shared/helpers/operation-result.helper';
+import { UseCallQueue } from '@shared/interceptors/call-queue.interceptor';
+import { ApplyRateLimiting } from '@shared/interceptors/rate-limiting.interceptor';
 
 import {
   CreateCommentDTO,
@@ -69,6 +71,8 @@ export class ForumController {
 
   @Post('posts/ai-enhance')
   @UseGuards(AuthGuard)
+  @UseCallQueue()
+  @ApplyRateLimiting(5)
   @ApiOperation({ summary: 'AI Polish draft post content' })
   async aiEnhanceContent(@Body() dto: AiEnhancePostDTO) {
     const result = await this.postService.aiEnhanceContent(dto.content);
@@ -82,6 +86,8 @@ export class ForumController {
       limits: { fileSize: 5 * 1024 * 1024 },
     }),
   )
+  @UseCallQueue()
+  @ApplyRateLimiting(10)
   @ApiOperation({ summary: 'Create a new forum post' })
   async createPost(
     @Body() dto: CreatePostDTO,
@@ -125,6 +131,7 @@ export class ForumController {
 
   @Put('posts/:id')
   @UseGuards(AuthGuard)
+  @ApplyRateLimiting(10)
   @ApiOperation({ summary: 'Update post content' })
   async updatePost(
     @Param() params: FindOnePostParamDTO,
@@ -143,6 +150,7 @@ export class ForumController {
 
   @Delete('posts/:id')
   @UseGuards(AuthGuard)
+  @ApplyRateLimiting(10)
   @ApiOperation({ summary: 'Soft delete a post' })
   async softDeletePost(
     @Param() params: FindOnePostParamDTO,
@@ -155,6 +163,8 @@ export class ForumController {
 
   @Post('posts/:id/vote')
   @UseGuards(AuthGuard)
+  @UseCallQueue()
+  @ApplyRateLimiting(30)
   @ApiOperation({ summary: 'Vote (up/down/none) a post' })
   async votePost(
     @Param() params: FindOnePostParamDTO,
@@ -197,6 +207,8 @@ export class ForumController {
       },
     }),
   )
+  @UseCallQueue()
+  @ApplyRateLimiting(15)
   @ApiOperation({ summary: 'Create comment or reply' })
   async createComment(
     @Param() params: FindOnePostParamDTO,
@@ -208,6 +220,7 @@ export class ForumController {
       params.id,
       dto,
       user.id,
+      user.role,
       file,
     );
     return generateSuccessResult(comment);
@@ -215,6 +228,7 @@ export class ForumController {
 
   @Put('comments/:id')
   @UseGuards(AuthGuard)
+  @ApplyRateLimiting(10)
   @ApiOperation({ summary: 'Update a comment' })
   async updateComment(
     @Param() params: FindOneCommentParamDTO,
@@ -231,6 +245,7 @@ export class ForumController {
 
   @Delete('comments/:id')
   @UseGuards(AuthGuard)
+  @ApplyRateLimiting(10)
   @ApiOperation({ summary: 'Soft delete a comment' })
   async softDeleteComment(
     @Param() params: FindOneCommentParamDTO,
@@ -243,6 +258,8 @@ export class ForumController {
 
   @Post('comments/:id/vote')
   @UseGuards(AuthGuard)
+  @UseCallQueue()
+  @ApplyRateLimiting(30)
   @ApiOperation({ summary: 'Vote (up/down/none) a comment' })
   async voteComment(
     @Param() params: FindOneCommentParamDTO,

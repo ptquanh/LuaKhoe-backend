@@ -49,6 +49,7 @@ export const APP_ACTION = {
 
 export const EVENT_KEYS = {
   POST_CREATED: 'post.created',
+  COMMENT_CREATED: 'comment.created',
   ADMIN_ALERT_VIOLATION: 'admin.alert.violation',
 };
 

@@ -25,6 +25,8 @@ import { ROLE } from '@shared/enums';
 import { AuthGuard } from '@shared/guards/auth.guard';
 import { RolesGuard } from '@shared/guards/roles.guard';
 import { generateSuccessResult } from '@shared/helpers/operation-result.helper';
+import { UseCallQueue } from '@shared/interceptors/call-queue.interceptor';
+import { ApplyRateLimiting } from '@shared/interceptors/rate-limiting.interceptor';
 
 import { AdminNutritionService } from '../services/admin-nutrition.service';
 
@@ -49,6 +51,8 @@ export class AdminNutritionController {
   @ApiOperation({
     summary: 'Create a single nutrition knowledge document (Admin only)',
   })
+  @UseCallQueue()
+  @ApplyRateLimiting(10)
   async createChunk(@Body() dto: SeedNutritionDocDto) {
     const result = await this.adminNutritionService.uploadDocument(
       dto.content,
@@ -63,6 +67,8 @@ export class AdminNutritionController {
   @ApiOperation({
     summary: 'Upload and parse a document file (PDF or TXT) (Admin only)',
   })
+  @UseCallQueue()
+  @ApplyRateLimiting(5)
   async uploadFile(@UploadedFile() file: Express.Multer.File) {
     if (!file) {
       throw new BadRequestException('No file uploaded');
@@ -75,6 +81,8 @@ export class AdminNutritionController {
   @ApiOperation({
     summary: 'Delete a nutrition knowledge document by ID (Admin only)',
   })
+  @UseCallQueue()
+  @ApplyRateLimiting(10)
   async deleteChunk(@Param('id') id: string) {
     await this.adminNutritionService.deleteByID(id);
     return generateSuccessResult({ message: 'Deleted successfully' });
@@ -83,6 +91,8 @@ export class AdminNutritionController {
   @Post('seed')
   @ApiOperation({ summary: 'Seed nutrition knowledge documents (Admin only)' })
   @ApiBody({ type: [SeedNutritionDocDto] })
+  @UseCallQueue()
+  @ApplyRateLimiting(3)
   async seed(
     @Body(new ParseArrayPipe({ items: SeedNutritionDocDto }))
     documents: SeedNutritionDocDto[],

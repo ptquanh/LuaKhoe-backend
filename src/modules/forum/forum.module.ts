@@ -5,6 +5,7 @@ import { SystemConfigModule } from '@modules/system-config/system-config.module'
 import { UserModule } from '@modules/user/user.module';
 
 import { ForumController } from './controllers/forum.controller';
+import { ModerationCron } from './cron/moderation.cron';
 import { PostExpirationCron } from './cron/post-expiration.cron';
 import { CommentVote } from './entities/comment-vote.entity';
 import { Comment } from './entities/comment.entity';
@@ -29,6 +30,7 @@ import { PostService } from './services/post.service';
     ModerationService,
     PostEventHandlerService,
     PostExpirationCron,
+    ModerationCron,
     NotificationService,
   ],
   exports: [

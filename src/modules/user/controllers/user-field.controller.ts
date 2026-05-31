@@ -14,6 +14,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { RequestUser } from '@shared/decorators/request-user.decorator';
 import { AuthGuard } from '@shared/guards/auth.guard';
+import { UseCallQueue } from '@shared/interceptors/call-queue.interceptor';
 import { ApplyRateLimiting } from '@shared/interceptors/rate-limiting.interceptor';
 import { UserAuthProfile } from '@shared/interfaces';
 
@@ -45,6 +46,7 @@ export class UserFieldController {
     description:
       'Register a new field location with custom name, address, and coordinates',
   })
+  @UseCallQueue()
   @ApplyRateLimiting(5)
   async createUserField(
     @RequestUser() user: UserAuthProfile,
@@ -59,6 +61,7 @@ export class UserFieldController {
     description:
       'Update custom name, address, coordinates, or default status of a field',
   })
+  @UseCallQueue()
   @ApplyRateLimiting(5)
   async updateUserField(
     @RequestUser() user: UserAuthProfile,
@@ -73,6 +76,8 @@ export class UserFieldController {
     summary: 'Delete a user field',
     description: 'Delete a field location by its ID',
   })
+  @UseCallQueue()
+  @ApplyRateLimiting(5)
   async deleteUserField(
     @RequestUser() user: UserAuthProfile,
     @Param('id') id: string,

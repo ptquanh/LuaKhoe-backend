@@ -20,6 +20,8 @@ import { ROLE } from '@shared/enums';
 import { AuthGuard as JwtAuthGuard } from '@shared/guards/auth.guard';
 import { RolesGuard } from '@shared/guards/roles.guard';
 import { generateSuccessResult } from '@shared/helpers/operation-result.helper';
+import { UseCallQueue } from '@shared/interceptors/call-queue.interceptor';
+import { ApplyRateLimiting } from '@shared/interceptors/rate-limiting.interceptor';
 
 import {
   CreateSystemConfigDto,
@@ -47,6 +49,8 @@ export class AdminSystemConfigsController {
 
   @Post()
   @ApiOperation({ summary: 'Add a new system configuration (Admin only)' })
+  @UseCallQueue()
+  @ApplyRateLimiting(10)
   async addConfig(@Body() dto: CreateSystemConfigDto): Promise<HttpResponse> {
     const config = await this.adminSystemConfigsService.create(dto);
     return generateSuccessResult(config);
@@ -71,6 +75,8 @@ export class AdminSystemConfigsController {
   @ApiOperation({
     summary: 'Update a system configuration by key (Admin only)',
   })
+  @UseCallQueue()
+  @ApplyRateLimiting(20)
   async updateConfig(
     @Param() params: SystemConfigKeyParamDto,
     @Body() dto: UpdateSystemConfigDto,
@@ -92,6 +98,8 @@ export class AdminSystemConfigsController {
   @ApiOperation({
     summary: 'Delete a system configuration by key (Admin only)',
   })
+  @UseCallQueue()
+  @ApplyRateLimiting(10)
   async deleteConfig(@Param() params: SystemConfigKeyParamDto): Promise<void> {
     const deleted = await this.adminSystemConfigsService.deleteByKey(
       params.key,

@@ -7,6 +7,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { EVENT_KEYS } from '@shared/constants';
 import { POST_STATUS } from '@shared/enums';
 
+import { Comment } from '../entities/comment.entity';
 import { Post } from '../entities/post.entity';
 import { ModerationService } from './moderation.service';
 
@@ -15,6 +16,8 @@ export class PostEventHandlerService {
   constructor(
     @InjectRepository(Post)
     private readonly postRepository: Repository<Post>,
+    @InjectRepository(Comment)
+    private readonly commentRepository: Repository<Comment>,
     private readonly moderationService: ModerationService,
     private readonly eventEmitter: EventEmitter2,
   ) {}
@@ -24,7 +27,8 @@ export class PostEventHandlerService {
     const post = await this.postRepository.findOne({
       where: { id: payload.postId },
     });
-    if (!post || post.status === POST_STATUS.DRAFT || post.isAdminPost) return;
+    if (!post || post.status !== POST_STATUS.PENDING || post.isAdminPost)
+      return;
 
     const moderationResult = await this.moderationService.moderatePostContent(
       post.content,
@@ -40,6 +44,48 @@ export class PostEventHandlerService {
         targetType: 'POST',
         flaggedReason,
       });
+    } else {
+      // Auto-approve if safe
+      await this.postRepository.update(post.id, {
+        status: POST_STATUS.APPROVED,
+      });
+    }
+  }
+
+  @OnEvent(EVENT_KEYS.COMMENT_CREATED)
+  async handleCommentCreated(payload: { commentId: string }) {
+    const comment = await this.commentRepository.findOne({
+      where: { id: payload.commentId },
+    });
+    if (!comment || comment.status !== POST_STATUS.PENDING) return;
+
+    const moderationResult = await this.moderationService.moderatePostContent(
+      comment.content,
+      comment.imageUrl ? [comment.imageUrl] : [],
+    );
+
+    if (!moderationResult.isSafe) {
+      const flaggedReason = moderationResult.reason || 'Bị từ chối tự động';
+
+      // Emit the admin violation alert event
+      this.eventEmitter.emit(EVENT_KEYS.ADMIN_ALERT_VIOLATION, {
+        targetId: comment.id,
+        targetType: 'COMMENT',
+        flaggedReason,
+      });
+    } else {
+      // Auto-approve if safe
+      await this.commentRepository.update(comment.id, {
+        status: POST_STATUS.APPROVED,
+      });
+
+      // Synchronize post commentCount & score
+      await this.postRepository.increment(
+        { id: comment.postId },
+        'commentCount',
+        1,
+      );
+      await this.postRepository.increment({ id: comment.postId }, 'score', 2);
     }
   }
 
@@ -53,6 +99,11 @@ export class PostEventHandlerService {
       await this.postRepository.update(payload.targetId, {
         status: POST_STATUS.REJECTED,
         flaggedReason: payload.flaggedReason,
+        rejectedBy: 'AI',
+      });
+    } else if (payload.targetType === 'COMMENT') {
+      await this.commentRepository.update(payload.targetId, {
+        status: POST_STATUS.REJECTED,
         rejectedBy: 'AI',
       });
     }

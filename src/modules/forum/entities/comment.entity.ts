@@ -11,6 +11,7 @@ import {
 import { User } from '@modules/user/entities/user.entity';
 
 import { AuditWithTimezone } from '@shared/common/audit.entity';
+import { POST_STATUS } from '@shared/enums';
 
 import { CommentVote } from './comment-vote.entity';
 import { Post } from './post.entity';
@@ -42,6 +43,12 @@ export class Comment extends AuditWithTimezone {
 
   @Column({ name: 'image_url', type: 'varchar', nullable: true })
   imageUrl: string | null;
+
+  @Column({
+    type: 'varchar',
+    default: POST_STATUS.APPROVED,
+  })
+  status: POST_STATUS;
 
   @Column({ name: 'rejected_by', type: 'varchar', length: 20, nullable: true })
   rejectedBy: string;

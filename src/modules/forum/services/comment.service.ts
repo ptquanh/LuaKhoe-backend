@@ -1,17 +1,18 @@
 import { DataSource, EntityManager, Repository } from 'typeorm';
 
 import {
-  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 
 import { StorageService } from '@modules/storage/storage.service';
+import { SystemConfigService } from '@modules/system-config/system-config.service';
 
-import { ERR_CODE, VOTE_CONFIG, getStorageFolder } from '@shared/constants';
-import { VOTE_TYPE } from '@shared/enums';
+import { VOTE_CONFIG, getStorageFolder } from '@shared/constants';
+import { POST_STATUS, ROLE, SYSTEM_CONFIG_KEY, VOTE_TYPE } from '@shared/enums';
 import { handleVote } from '@shared/helpers/vote-handler.helper';
 
 import {
@@ -32,15 +33,42 @@ export class CommentService {
     private readonly dataSource: DataSource,
     private readonly storageService: StorageService,
     private readonly moderationService: ModerationService,
+    private readonly systemConfigService: SystemConfigService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async createComment(
     postId: string,
     dto: CreateCommentDTO,
     authorId: string,
+    userRole: ROLE = ROLE.FARMER,
     file?: Express.Multer.File,
   ): Promise<Comment> {
-    return this.dataSource.transaction(async (manager) => {
+    const isAutoEnabled =
+      (await this.systemConfigService.get(
+        SYSTEM_CONFIG_KEY.AI_AUTO_MODERATION_ENABLED,
+      )) === 'true';
+    const commentRolesStr = await this.systemConfigService.get(
+      SYSTEM_CONFIG_KEY.AI_MODERATION_COMMENT_ROLES,
+    );
+    let commentRoles: string[] = ['FARMER'];
+    if (commentRolesStr) {
+      try {
+        const parsed = JSON.parse(commentRolesStr);
+        if (Array.isArray(parsed)) {
+          commentRoles = parsed;
+        }
+      } catch {
+        commentRoles = ['FARMER'];
+      }
+    }
+
+    let initialStatus = POST_STATUS.APPROVED;
+    if (isAutoEnabled && commentRoles.includes(userRole)) {
+      initialStatus = POST_STATUS.PENDING;
+    }
+
+    const savedComment = await this.dataSource.transaction(async (manager) => {
       const post = await manager.findOne(Post, { where: { id: postId } });
       if (!post) {
         throw new NotFoundException('Post not found');
@@ -64,28 +92,10 @@ export class CommentService {
         );
       }
 
-      // Run Multimodal Moderation if content or image exists
-      if (imageUrl || dto.content) {
-        const moderationResult =
-          await this.moderationService.moderatePostContent(
-            dto.content,
-            imageUrl ? [imageUrl] : [],
-          );
-        if (!moderationResult.isSafe) {
-          // Storage Rollback: delete uploaded file if moderation fails
-          if (imageUrl) {
-            await this.storageService.deleteFile(imageUrl);
-          }
-          const exception = new BadRequestException({
-            errorCode: ERR_CODE.CONTENT_POLICY_VIOLATION,
-            message:
-              moderationResult.reason ||
-              'Nội dung hoặc hình ảnh bình luận vi phạm chính sách cộng đồng!',
-          });
-          (exception as any).code = ERR_CODE.CONTENT_POLICY_VIOLATION;
-          throw exception;
-        }
-      }
+      // Run synchronous Multimodal Moderation only if bypassed and still approved,
+      // but let's keep it clean: if status is PENDING, we moderate in the background,
+      // if status is APPROVED, we skip LLM but can keep a basic sanity check or proceed.
+      // We proceed directly as instructed by the user request.
 
       const comment = manager.create(Comment, {
         postId,
@@ -93,16 +103,25 @@ export class CommentService {
         parentId: dto.parentId || null,
         content: dto.content,
         imageUrl,
+        status: initialStatus,
       });
 
-      const savedComment = await manager.save(comment);
+      const saved = await manager.save(comment);
 
-      // Increment commentCount by 1 and score by 2
-      await manager.increment(Post, { id: postId }, 'commentCount', 1);
-      await manager.increment(Post, { id: postId }, 'score', 2);
+      if (initialStatus === POST_STATUS.APPROVED) {
+        // Increment commentCount by 1 and score by 2
+        await manager.increment(Post, { id: postId }, 'commentCount', 1);
+        await manager.increment(Post, { id: postId }, 'score', 2);
+      }
 
-      return savedComment;
+      return saved;
     });
+
+    if (savedComment.status === POST_STATUS.PENDING) {
+      this.eventEmitter.emit('comment.created', { commentId: savedComment.id });
+    }
+
+    return savedComment;
   }
 
   async getCommentsForPost(
@@ -118,7 +137,10 @@ export class CommentService {
       .leftJoinAndSelect('author.farmerProfile', 'farmerProfile')
       .leftJoinAndSelect('author.adminProfile', 'adminProfile')
       .where('comment.postId = :postId', { postId })
-      .andWhere('comment.parentId IS NULL');
+      .andWhere('comment.parentId IS NULL')
+      .andWhere('comment.status = :approvedStatus', {
+        approvedStatus: POST_STATUS.APPROVED,
+      });
 
     if (query.cursor) {
       const cursorCreatedAt = new Date(query.cursor);
@@ -183,6 +205,9 @@ export class CommentService {
       .leftJoinAndSelect('author.farmerProfile', 'farmerProfile')
       .leftJoinAndSelect('author.adminProfile', 'adminProfile')
       .where('reply.parentId = :parentId', { parentId: parentComment.id })
+      .andWhere('reply.status = :approvedStatus', {
+        approvedStatus: POST_STATUS.APPROVED,
+      })
       .orderBy('reply.createdAt', 'ASC');
 
     if (currentUserId) {

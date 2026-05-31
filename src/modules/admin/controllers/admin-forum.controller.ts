@@ -10,6 +10,8 @@ import { ROLE } from '@shared/enums';
 import { AuthGuard as JwtAuthGuard } from '@shared/guards/auth.guard';
 import { RolesGuard } from '@shared/guards/roles.guard';
 import { generateSuccessResult } from '@shared/helpers/operation-result.helper';
+import { UseCallQueue } from '@shared/interceptors/call-queue.interceptor';
+import { ApplyRateLimiting } from '@shared/interceptors/rate-limiting.interceptor';
 
 import { ModeratePostDto } from '../dtos/admin-forum.dto';
 import { AdminForumService } from '../services/admin-forum.service';
@@ -26,6 +28,8 @@ export class AdminForumController {
   @ApiOperation({
     summary: 'Moderate (approve/reject/expire) a post (Admin only)',
   })
+  @UseCallQueue()
+  @ApplyRateLimiting(20)
   async moderatePost(
     @Param() params: FindOnePostParamDTO,
     @Body() dto: ModeratePostDto,

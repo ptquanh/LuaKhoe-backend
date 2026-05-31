@@ -14,6 +14,8 @@ import { Roles } from '@shared/decorators/roles.decorator';
 import { ROLE } from '@shared/enums';
 import { AuthGuard } from '@shared/guards/auth.guard';
 import { RolesGuard } from '@shared/guards/roles.guard';
+import { UseCallQueue } from '@shared/interceptors/call-queue.interceptor';
+import { ApplyRateLimiting } from '@shared/interceptors/rate-limiting.interceptor';
 import { UserAuthProfile } from '@shared/interfaces';
 
 import { CreateFeedbackDto, ProcessFeedbackDto } from './feedback.dto';
@@ -28,6 +30,8 @@ export class FeedbackController {
 
   @Post()
   @ApiOperation({ summary: 'Submit feedback for a diagnosis' })
+  @UseCallQueue()
+  @ApplyRateLimiting(5)
   async submit(
     @RequestUser() user: UserAuthProfile,
     @Body() dto: CreateFeedbackDto,
@@ -53,6 +57,7 @@ export class FeedbackController {
   @Roles(ROLE.ADMIN)
   @UseGuards(RolesGuard)
   @ApiOperation({ summary: 'Approve or Reject feedback (Admin only)' })
+  @ApplyRateLimiting(20)
   async process(
     @RequestUser() user: UserAuthProfile,
     @Param('id') id: string,

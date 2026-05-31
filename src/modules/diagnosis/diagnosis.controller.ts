@@ -19,6 +19,8 @@ import {
 
 import { RequestUser } from '@shared/decorators/request-user.decorator';
 import { AuthGuard } from '@shared/guards/auth.guard';
+import { UseCallQueue } from '@shared/interceptors/call-queue.interceptor';
+import { ApplyRateLimiting } from '@shared/interceptors/rate-limiting.interceptor';
 import { UserAuthProfile } from '@shared/interfaces';
 
 import { CreateDiagnosisDto, GetHistoryDto } from './diagnosis.dto';
@@ -35,6 +37,8 @@ export class DiagnosisController {
   @ApiOperation({ summary: 'Predict disease from uploaded leaf image' })
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(FileInterceptor('image'))
+  @UseCallQueue()
+  @ApplyRateLimiting(5)
   async predict(
     @RequestUser() user: UserAuthProfile,
     @UploadedFile() file: Express.Multer.File,
@@ -64,6 +68,8 @@ export class DiagnosisController {
   })
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(FileInterceptor('image'))
+  @UseCallQueue()
+  @ApplyRateLimiting(5)
   async uploadSupplement(
     @Param('id') id: string,
     @UploadedFile() file: Express.Multer.File,
