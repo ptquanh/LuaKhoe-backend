@@ -43,6 +43,12 @@ class AppConfig {
 
   @IsString()
   googleCallbackUrl: string;
+
+  @IsString()
+  defaultAdminEmail: string;
+
+  @IsString()
+  defaultAdminPassword: string;
 }
 
 export const appConfig = registerAs(CONFIG_KEY.APP, () => {
@@ -59,6 +65,8 @@ export const appConfig = registerAs(CONFIG_KEY.APP, () => {
     googleClientId: process.env.GOOGLE_CLIENT_ID || '',
     googleClientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
     googleCallbackUrl: process.env.GOOGLE_CALLBACK_URL || '',
+    defaultAdminEmail: process.env.DEFAULT_ADMIN_EMAIL || '',
+    defaultAdminPassword: process.env.DEFAULT_ADMIN_PASSWORD || '',
   };
 
   validateConfig(config, AppConfig);

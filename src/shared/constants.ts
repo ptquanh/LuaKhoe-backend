@@ -53,8 +53,6 @@ export const EVENT_KEYS = {
   ADMIN_ALERT_VIOLATION: 'admin.alert.violation',
 };
 
-// Enums CONFIG_KEY and SYSTEM_CONFIG_KEY have been moved to enums.ts
-
 export const ENV_KEY = {
   PORT: CONFIG_KEY.APP + '.port',
   NODE_ENV: CONFIG_KEY.APP + '.nodeEnv',
@@ -110,16 +108,13 @@ export const ENV_KEY = {
   GROQ_MODEL_NAME: CONFIG_KEY.GROQ + '.modelName',
 
   COHERE_API_KEY: CONFIG_KEY.COHERE + '.apiKey',
-};
 
-// Enum METADATA_KEY has been moved to enums.ts
+  DEFAULT_ADMIN_EMAIL: CONFIG_KEY.APP + '.defaultAdminEmail',
+  DEFAULT_ADMIN_PASSWORD: CONFIG_KEY.APP + '.defaultAdminPassword',
+};
 
 export const DEFAULT_MAX_CONCURRENT_CALL = 1;
 export const DEFAULT_FAILED_ATTEMPTS_BAN = 3;
-
-// Enum HEADER_KEY has been moved to enums.ts
-
-// Enums ENTITY_STATUS, PARTNER_DIRECTION, PARTNER_TYPE, PARTNER_AUTH_TYPE, EMAIL_TEMPLATE, VERIFY_OTP_ACTION, SOCIAL_PROVIDER have been moved to enums.ts
 
 export const CACHE_TTL = {
   ONE_MINUTE: 60,
@@ -138,8 +133,6 @@ export const getStorageFolder = () => ({
   FORUM_POSTS: `${process.env.APP_NAME}/images/upload/forum/posts`,
   FORUM_COMMENTS: `${process.env.APP_NAME}/images/upload/forum/comments`,
 });
-
-// Enums DISEASE_STATUS and FEEDBACK_STATUS have been moved to enums.ts
 
 export const VOTE_CONFIG = {
   POST: {

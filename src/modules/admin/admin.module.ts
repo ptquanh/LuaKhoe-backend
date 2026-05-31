@@ -23,6 +23,7 @@ import { AdminDashboardService } from './services/admin-dashboard.service';
 import { AdminDiseaseService } from './services/admin-disease.service';
 import { AdminForumService } from './services/admin-forum.service';
 import { AdminNutritionService } from './services/admin-nutrition.service';
+import { AdminSeederService } from './services/admin-seeder.service';
 import { AdminSystemConfigsService } from './services/admin-system-configs.service';
 import { AdminUserService } from './services/admin-user.service';
 
@@ -54,6 +55,7 @@ import { AdminUserService } from './services/admin-user.service';
     AdminNutritionService,
     AdminDiseaseService,
     AdminDashboardService,
+    AdminSeederService,
   ],
   exports: [
     AdminSystemConfigsService,
@@ -63,6 +65,7 @@ import { AdminUserService } from './services/admin-user.service';
     AdminNutritionService,
     AdminDiseaseService,
     AdminDashboardService,
+    AdminSeederService,
   ],
 })
 export class AdminModule {}
