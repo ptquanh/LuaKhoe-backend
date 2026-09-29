@@ -246,6 +246,17 @@ export class AiService implements OnModuleInit {
       );
     }
 
+    let activeModelId = modelId;
+    if (!activeModelId) {
+      for (const [key, value] of this.sessions.entries()) {
+        if (value === sessionToUse) {
+          activeModelId = key;
+          break;
+        }
+      }
+    }
+    const modelPath = activeModelId ? `../backend/.models_cache/${activeModelId}.onnx` : undefined;
+
     // Call the Python microservice to perform the prediction
     try {
       const response = await firstValueFrom(
@@ -258,6 +269,7 @@ export class AiService implements OnModuleInit {
           weather: params.weather,
           confidence_threshold: params.confidenceThreshold,
           ai_model_version: params.modelVersionName,
+          model_path: modelPath,
         }),
       );
       return response.data;
@@ -275,6 +287,22 @@ export class AiService implements OnModuleInit {
     modelVersionName?: string;
   }): Promise<any> {
     try {
+      let activeModelId: string | undefined = undefined;
+      if (params.modelVersionName) {
+        const model = await this.aiModelRepo.findOne({
+          where: { versionName: params.modelVersionName },
+        });
+        if (model) {
+          activeModelId = model.id;
+        }
+      }
+      
+      if (!activeModelId && this.sessions.size > 0) {
+        activeModelId = this.sessions.keys().next().value;
+      }
+      
+      const modelPath = activeModelId ? `../backend/.models_cache/${activeModelId}.onnx` : undefined;
+
       const response = await firstValueFrom(
         this.httpService.post(`${this.aiConfig.baseUrl}/re-score`, {
           original_results: params.originalResults.map((r) => ({
@@ -283,6 +311,7 @@ export class AiService implements OnModuleInit {
           })),
           new_image_url: params.newImageUrl,
           ai_model_version: params.modelVersionName,
+          model_path: modelPath,
         }),
       );
       return response.data;
