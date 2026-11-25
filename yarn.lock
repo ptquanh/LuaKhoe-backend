@@ -3910,6 +3910,11 @@ ejs@^3.1.10:
   dependencies:
     jake "^10.8.5"
 
+ejs@^7.0.2:
+  version "7.0.2"
+  resolved "https://registry.yarnpkg.com/ejs/-/ejs-7.0.2.tgz#e2acc73603c917be05b1e033f6b33ccbfa843678"
+  integrity sha512-LcDSEP6Oclb9sTiSyG0MpG0RuKvLDRxCOOt+2sIk+kdk1rMkFU8SRnT0qaNt5zvU0LOV1YXXOvIoZL/sKwabvw==
+
 electron-to-chromium@^1.5.173:
   version "1.5.187"
   resolved "https://registry.npmjs.org/electron-to-chromium/-/electron-to-chromium-1.5.187.tgz"

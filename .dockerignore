@@ -1,0 +1,13 @@
+Dockerfile
+.dockerignore
+node_modules
+dist
+.git
+.gitignore
+.env
+.env.*
+.models_cache
+coverage
+test
+*.log
+README.md

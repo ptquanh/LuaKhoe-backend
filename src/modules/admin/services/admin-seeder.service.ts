@@ -6,7 +6,7 @@ import { ConfigService } from '@nestjs/config';
 import { UserService } from '@modules/user/services/user.service';
 
 import { ENV_KEY } from '@shared/constants';
-import { ROLE } from '@shared/enums';
+import { ENTITY_STATUS, ROLE } from '@shared/enums';
 
 @Injectable()
 export class AdminSeederService implements OnModuleInit {
@@ -45,11 +45,18 @@ export class AdminSeederService implements OnModuleInit {
     this.logger.log(`Đang khởi tạo tài khoản Admin mặc định (${email})...`);
 
     const hashedPassword = await bcrypt.hash(password, 10);
+    const rawUsername = email.split('@')[0].replace(/[^a-zA-Z0-9._-]/g, '');
+    const username =
+      rawUsername && rawUsername.toLowerCase() !== 'admin'
+        ? rawUsername
+        : 'genesis_admin';
 
     await this.userService.create({
       email,
+      username,
       password: hashedPassword,
       role: ROLE.ADMIN,
+      status: ENTITY_STATUS.ACTIVE,
     });
 
     this.logger.log('Khởi tạo Genesis Admin THÀNH CÔNG!');
