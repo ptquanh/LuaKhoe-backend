@@ -17,7 +17,9 @@ export const geminiConfig = registerAs(CONFIG_KEY.GEMINI || 'gemini', () => {
   const config = {
     apiKey: process.env.GOOGLE_GENAI_API_KEY || '',
     embeddingModelName:
-      process.env.GEMINI_EMBEDDING_MODEL_NAME || 'text-embedding-004',
+      process.env.GEMINI_EMBEDDING_MODEL_NAME ||
+      process.env.GEMINI_EMBEDDING_MODEL ||
+      'gemini-embedding-001',
   };
 
   validateConfig(config, GeminiConfig);

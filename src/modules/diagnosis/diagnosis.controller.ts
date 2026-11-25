@@ -36,9 +36,9 @@ export class DiagnosisController {
   @Post('predict')
   @ApiOperation({ summary: 'Predict disease from uploaded leaf image' })
   @ApiConsumes('multipart/form-data')
-  @UseInterceptors(FileInterceptor('image'))
+  @ApplyRateLimiting(10)
   @UseCallQueue()
-  @ApplyRateLimiting(5)
+  @UseInterceptors(FileInterceptor('image'))
   async predict(
     @RequestUser() user: UserAuthProfile,
     @UploadedFile() file: Express.Multer.File,
@@ -67,9 +67,9 @@ export class DiagnosisController {
     summary: 'Submit close-up supplementary image for weighted re-scoring',
   })
   @ApiConsumes('multipart/form-data')
-  @UseInterceptors(FileInterceptor('image'))
+  @ApplyRateLimiting(10)
   @UseCallQueue()
-  @ApplyRateLimiting(5)
+  @UseInterceptors(FileInterceptor('image'))
   async uploadSupplement(
     @Param('id') id: string,
     @UploadedFile() file: Express.Multer.File,

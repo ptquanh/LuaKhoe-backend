@@ -41,11 +41,21 @@ export class RateLimitingInterceptor implements NestInterceptor {
     ) || { limit: 60, ttl: 60 };
 
     const request: Request = context.switchToHttp().getRequest();
-    const requestIp = request.ips.length ? request.ips[0] : request.ip;
+    const user = (request as any).activeUser || (request as any).user;
+    const cfIp = request.headers['cf-connecting-ip'];
+    const forwarded = request.headers['x-forwarded-for'];
+    const forwardedIp = Array.isArray(forwarded)
+      ? forwarded[0]
+      : forwarded?.split(',')[0]?.trim();
+    const requestIp =
+      (Array.isArray(cfIp) ? cfIp[0] : cfIp) ||
+      forwardedIp ||
+      (request.ips.length ? request.ips[0] : request.ip);
+    const clientIdentifier = user?.id ? `user:${user.id}` : requestIp;
     const endpoint = request.originalUrl;
     const method = request.method;
 
-    const key = rateLimitCacheKey(method, endpoint, requestIp);
+    const key = rateLimitCacheKey(method, endpoint, clientIdentifier);
 
     const rawCount = await this.cacheService.get(key);
     const userReqCount = (parseInt(rawCount) || 0) + 1;

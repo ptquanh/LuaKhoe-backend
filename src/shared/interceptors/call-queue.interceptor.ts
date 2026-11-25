@@ -55,6 +55,7 @@ export class CallQueueInterceptor implements NestInterceptor {
     next: CallHandler<any>,
   ): Promise<Observable<any>> {
     const httpReq: any = ctx.switchToHttp().getRequest();
+    const httpRes: any = ctx.switchToHttp().getResponse();
     const logId = httpReq.headers[HEADER_KEY.LOG_ID];
 
     const userIP =
@@ -100,8 +101,35 @@ export class CallQueueInterceptor implements NestInterceptor {
 
     this.cacheEngine.set(cacheKey, newValue);
 
+    let released = false;
+    const release = () => {
+      if (released) return;
+      released = true;
+
+      httpReq.off?.('aborted', release);
+      httpRes?.off?.('close', onClose);
+
+      const currentValue =
+        (this.cacheEngine.get(cacheKey) as number | undefined) || 0;
+
+      if (currentValue <= 1) {
+        this.cacheEngine.delete(cacheKey);
+      } else {
+        this.cacheEngine.set(cacheKey, currentValue - 1);
+      }
+    };
+
+    const onClose = () => {
+      if (!httpRes?.writableEnded) {
+        release();
+      }
+    };
+
+    httpReq.once?.('aborted', release);
+    httpRes?.once?.('close', onClose);
+
     return next.handle().pipe(
-      timeout(60 * 3 * 1000),
+      timeout(60 * 1000),
       catchError((err) => {
         if (err instanceof TimeoutError) {
           this.logger.error(
@@ -123,18 +151,7 @@ export class CallQueueInterceptor implements NestInterceptor {
         // Perform any additional error handling if necessary
         return throwError(() => err);
       }),
-      finalize(() => {
-        const existingValue =
-          (this.cacheEngine.get(cacheKey) as number | undefined) || 0;
-
-        if (existingValue === 0) {
-          return;
-        }
-
-        const newValue = existingValue - 1;
-
-        this.cacheEngine.set(cacheKey, newValue);
-      }),
+      finalize(release),
     );
   }
 }

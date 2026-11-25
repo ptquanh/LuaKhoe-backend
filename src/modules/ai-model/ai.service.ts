@@ -260,17 +260,21 @@ export class AiService implements OnModuleInit {
     // Call the Python microservice to perform the prediction
     try {
       const response = await firstValueFrom(
-        this.httpService.post(`${this.aiConfig.baseUrl}/predict`, {
-          image_url: params.imageUrl,
-          gps_lat: params.gpsLat,
-          gps_lng: params.gpsLng,
-          province: params.province,
-          field_params: params.fieldParams,
-          weather: params.weather,
-          confidence_threshold: params.confidenceThreshold,
-          ai_model_version: params.modelVersionName,
-          model_path: modelPath,
-        }),
+        this.httpService.post(
+          `${this.aiConfig.baseUrl}/predict`,
+          {
+            image_url: params.imageUrl,
+            gps_lat: params.gpsLat,
+            gps_lng: params.gpsLng,
+            province: params.province,
+            field_params: params.fieldParams,
+            weather: params.weather,
+            confidence_threshold: params.confidenceThreshold,
+            ai_model_version: params.modelVersionName,
+            model_path: modelPath,
+          },
+          { timeout: 45000 },
+        ),
       );
       return response.data;
     } catch (error) {
@@ -304,15 +308,19 @@ export class AiService implements OnModuleInit {
       const modelPath = activeModelId ? `../backend/.models_cache/${activeModelId}.onnx` : undefined;
 
       const response = await firstValueFrom(
-        this.httpService.post(`${this.aiConfig.baseUrl}/re-score`, {
-          original_results: params.originalResults.map((r) => ({
-            disease: r.disease,
-            confidence: r.confidence,
-          })),
-          new_image_url: params.newImageUrl,
-          ai_model_version: params.modelVersionName,
-          model_path: modelPath,
-        }),
+        this.httpService.post(
+          `${this.aiConfig.baseUrl}/re-score`,
+          {
+            original_results: params.originalResults.map((r) => ({
+              disease: r.disease,
+              confidence: r.confidence,
+            })),
+            new_image_url: params.newImageUrl,
+            ai_model_version: params.modelVersionName,
+            model_path: modelPath,
+          },
+          { timeout: 45000 },
+        ),
       );
       return response.data;
     } catch (error) {
